@@ -1,0 +1,47 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.extra.global.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-prometheus
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+rules:
+# This permission are not in the kube-prometheus repo
+# they're grabbed from https://github.com/prometheus/prometheus/blob/master/documentation/examples/rbac-setup.yml
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/metrics
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - "networking.k8s.io"
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+  verbs: ["get"]
+{{/* fix(#3338): add required rules to use node-exporter with the RBAC proxy */}}
+{{- if and (hasKey .Values.metric "nodeExporter") .Values.metric.nodeExporter.enabled (hasKey .Values.metric "prometheus-node-exporter") (hasKey (index .Values.metric "prometheus-node-exporter") "kubeRBACProxy") (index .Values.metric "prometheus-node-exporter").kubeRBACProxy.enabled (hasKey .Subcharts "prometheus-node-exporter") }}
+- apiGroups: [ "" ]
+  resources:
+  - services/{{ include "prometheus-node-exporter.fullname" (index .Subcharts "prometheus-node-exporter") }}
+  verbs: [ "get", "list", "watch" ]
+{{- end }}
+{{- if and (hasKey .Values.metric "kubeStateMetrics") .Values.metric.kubeStateMetrics.enabled (hasKey .Values.metric "kube-state-metrics") (hasKey (index .Values.metric "kube-state-metrics") "kubeRBACProxy") (index .Values.metric "kube-state-metrics").kubeRBACProxy.enabled (hasKey .Subcharts "kube-state-metrics") }}
+- apiGroups: [ "" ]
+  resources:
+  - services/{{ include "kube-state-metrics.fullname" (index .Subcharts "kube-state-metrics") }}
+  verbs: [ "get", "list", "watch" ]
+{{- end }}
+{{- if .Values.metric.prometheus.additionalRulesForClusterRole }}
+{{ toYaml .Values.metric.prometheus.additionalRulesForClusterRole | indent 0 }}
+{{- end }}
+{{- end }}

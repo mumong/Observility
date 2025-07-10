@@ -1,0 +1,59 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.prometheus.ingress.enabled -}}
+  {{- $pathType := .Values.metric.prometheus.ingress.pathType | default "ImplementationSpecific" -}}
+  {{- $serviceName := printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "prometheus" -}}
+  {{- $servicePort := .Values.metric.prometheus.ingress.servicePort | default .Values.metric.prometheus.service.port -}}
+  {{- $routePrefix := list .Values.metric.prometheus.prometheusSpec.routePrefix -}}
+  {{- $paths := .Values.metric.prometheus.ingress.paths | default $routePrefix -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+{{- if .Values.metric.prometheus.ingress.annotations }}
+  annotations:
+    {{- tpl (toYaml .Values.metric.prometheus.ingress.annotations) . | nindent 4 }}
+{{- end }}
+  name: {{ $serviceName }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-prometheus
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.prometheus.ingress.labels }}
+{{ toYaml .Values.metric.prometheus.ingress.labels | indent 4 }}
+{{- end }}
+spec:
+  {{- if .Values.metric.prometheus.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.metric.prometheus.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+  {{- if .Values.metric.prometheus.ingress.hosts }}
+  {{- range $host := .Values.metric.prometheus.ingress.hosts }}
+    - host: {{ tpl $host $ | quote }}
+      http:
+        paths:
+  {{- range $p := $paths }}
+          - path: {{ tpl $p $ }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $servicePort }}
+    {{- end -}}
+  {{- end -}}
+  {{- else }}
+    - http:
+        paths:
+  {{- range $p := $paths }}
+          - path: {{ tpl $p $ }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $servicePort }}
+  {{- end -}}
+  {{- end -}}
+  {{- if .Values.metric.prometheus.ingress.tls }}
+  tls:
+{{ tpl (toYaml .Values.metric.prometheus.ingress.tls | indent 4) . }}
+  {{- end -}}
+{{- end -}}

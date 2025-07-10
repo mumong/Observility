@@ -1,0 +1,50 @@
+{{- if and .Values.logging.enabled .Values.logging.elasticsearch.enabled .Values.logging.elasticsearch.tests.enabled -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+{{- if .Values.logging.elasticsearch.healthNameOverride }}
+  name: {{ .Values.logging.elasticsearch.healthNameOverride | quote }}
+{{- else }}
+  name: "{{ .Release.Name }}-{{ randAlpha 5 | lower }}-test"
+{{- end }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  securityContext:
+{{ toYaml .Values.logging.elasticsearch.podSecurityContext | indent 4 }}
+  containers:
+{{- if .Values.logging.elasticsearch.healthNameOverride }}
+  - name: {{ .Values.logging.elasticsearch.healthNameOverride | quote }}
+{{- else }}
+  - name: "{{ .Release.Name }}-{{ randAlpha 5 | lower }}-test"
+{{- end }}
+    env:
+      - name: ELASTIC_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: {{ template "elasticsearch.uname" . }}-credentials
+            key: password
+    image: "{{ .Values.logging.elasticsearch.image }}:{{ .Values.logging.elasticsearch.imageTag }}"
+    imagePullPolicy: "{{ .Values.logging.elasticsearch.imagePullPolicy }}"
+    command:
+      - "sh"
+      - "-c"
+      - |
+        #!/usr/bin/env bash -e
+        curl -XGET --fail --cacert /usr/share/elasticsearch/config/certs/tls.crt -u "elastic:${ELASTIC_PASSWORD}" https://'{{ template "elasticsearch.uname" . }}:{{ .Values.logging.elasticsearch.httpPort }}/_cluster/health?{{ .Values.logging.elasticsearch.clusterHealthCheckParams }}'
+    volumeMounts:
+      - name: elasticsearch-certs
+        mountPath: /usr/share/elasticsearch/config/certs
+        readOnly: true
+  {{- if .Values.logging.elasticsearch.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml .Values.logging.elasticsearch.imagePullSecrets | indent 4 }}
+  {{- end }}
+  restartPolicy: Never
+  volumes:
+    - name: elasticsearch-certs
+      secret:
+        secretName: {{ template "elasticsearch.uname" . }}-certs
+{{- end -}}

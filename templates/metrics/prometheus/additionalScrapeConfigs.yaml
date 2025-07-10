@@ -1,0 +1,20 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.prometheus.prometheusSpec.additionalScrapeConfigs }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus-scrape-confg
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+{{- if .Values.metric.prometheus.prometheusSpec.additionalPrometheusSecretsAnnotations }}
+  annotations:
+{{ toYaml .Values.metric.prometheus.prometheusSpec.additionalPrometheusSecretsAnnotations | indent 4 }}
+{{- end }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-prometheus-scrape-confg
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+data:
+{{- if  eq ( typeOf .Values.metric.prometheus.prometheusSpec.additionalScrapeConfigs ) "string" }}
+  additional-scrape-configs.yaml: {{ tpl .Values.metric.prometheus.prometheusSpec.additionalScrapeConfigs $ | b64enc | quote }}
+{{- else }}
+  additional-scrape-configs.yaml: {{ tpl (toYaml .Values.metric.prometheus.prometheusSpec.additionalScrapeConfigs) $ | b64enc | quote }}
+{{- end }}
+{{- end }}

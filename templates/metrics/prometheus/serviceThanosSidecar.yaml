@@ -1,0 +1,43 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.prometheus.thanosService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-discovery
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-thanos-discovery
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.prometheus.thanosService.labels }}
+{{ toYaml .Values.metric.prometheus.thanosService.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.prometheus.thanosService.annotations }}
+  annotations:
+{{ toYaml .Values.metric.prometheus.thanosService.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.metric.prometheus.thanosService.type }}
+  clusterIP: {{ .Values.metric.prometheus.thanosService.clusterIP }}
+{{- if .Values.metric.prometheus.thanosService.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.prometheus.thanosService.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.prometheus.thanosService.ipDualStack.ipFamilyPolicy }}
+{{- end }}
+{{- if ne .Values.metric.prometheus.thanosService.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.metric.prometheus.thanosService.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  - name: {{ .Values.metric.prometheus.thanosService.portName }}
+    port: {{ .Values.metric.prometheus.thanosService.port }}
+    targetPort: {{ .Values.metric.prometheus.thanosService.targetPort }}
+    {{- if eq .Values.metric.prometheus.thanosService.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.thanosService.nodePort }}
+    {{- end }}
+  - name: {{ .Values.metric.prometheus.thanosService.httpPortName }}
+    port: {{ .Values.metric.prometheus.thanosService.httpPort }}
+    targetPort: {{ .Values.metric.prometheus.thanosService.targetHttpPort }}
+    {{- if eq .Values.metric.prometheus.thanosService.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.thanosService.httpNodePort }}
+    {{- end }}
+  selector:
+    app.kubernetes.io/name: prometheus
+    operator.prometheus.io/name: {{ template "kube-prometheus-stack.prometheus.crname" . }}
+{{- end }}

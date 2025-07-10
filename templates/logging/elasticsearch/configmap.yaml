@@ -1,0 +1,34 @@
+{{- if and .Values.logging.enabled .Values.logging.elasticsearch.enabled .Values.logging.elasticsearch.esConfig }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "elasticsearch.uname" . }}-config
+  labels:
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    chart: "{{ .Chart.Name }}"
+    app: "{{ template "elasticsearch.uname" . }}"
+data:
+{{- range $path, $config := .Values.logging.elasticsearch.esConfig }}
+  {{ $path }}: |
+{{ $config | indent 4 -}}
+{{- end -}}
+{{- end -}}
+{{- if and .Values.logging.enabled .Values.logging.elasticsearch.enabled .Values.logging.elasticsearch.esJvmOptions }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "elasticsearch.uname" . }}-jvm-options
+  labels:
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    chart: "{{ .Chart.Name }}"
+    app: "{{ template "elasticsearch.uname" . }}"
+data:
+{{- range $path, $config := .Values.logging.elasticsearch.esJvmOptions }}
+  {{ $path }}: |
+{{ $config | indent 4 -}}
+{{- end -}}
+{{- end -}}

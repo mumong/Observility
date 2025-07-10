@@ -1,0 +1,69 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeEtcd.enabled .Values.metric.others.kubeEtcd.serviceMonitor.enabled .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-etcd
+  {{- if .Values.metric.prometheus.prometheusSpec.ignoreNamespaceSelectors }}
+  namespace: kube-system
+  {{- else }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  {{- end }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-etcd
+  {{- with .Values.metric.others.kubeEtcd.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+spec:
+  jobLabel: {{ .Values.metric.others.kubeEtcd.serviceMonitor.jobLabel }}
+  {{- with .Values.metric.others.kubeEtcd.serviceMonitor.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- include "servicemonitor.scrapeLimits" .Values.metric.others.kubeEtcd.serviceMonitor | nindent 2 }}
+  selector:
+    {{- if .Values.metric.others.kubeEtcd.serviceMonitor.selector }}
+    {{ tpl (toYaml .Values.metric.others.kubeEtcd.serviceMonitor.selector | nindent 4) . }}
+    {{- else }}
+    matchLabels:
+      app: {{ template "kube-prometheus-stack.name" . }}-kube-etcd
+      release: {{ $.Release.Name | quote }}
+    {{- end }}
+  namespaceSelector:
+    matchNames:
+      - "kube-system"
+  endpoints:
+  - port: {{ .Values.metric.others.kubeEtcd.serviceMonitor.port }}
+    {{- if .Values.metric.others.kubeEtcd.serviceMonitor.interval }}
+    interval: {{ .Values.metric.others.kubeEtcd.serviceMonitor.interval }}
+    {{- end }}
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    {{- if .Values.metric.others.kubeEtcd.serviceMonitor.proxyUrl }}
+    proxyUrl: {{ .Values.metric.others.kubeEtcd.serviceMonitor.proxyUrl}}
+    {{- end }}
+    {{- if eq .Values.metric.others.kubeEtcd.serviceMonitor.scheme "https" }}
+    scheme: https
+    tlsConfig:
+      {{- if .Values.metric.others.kubeEtcd.serviceMonitor.serverName }}
+      serverName: {{ .Values.metric.others.kubeEtcd.serviceMonitor.serverName }}
+      {{- end }}
+      {{- if .Values.metric.others.kubeEtcd.serviceMonitor.caFile }}
+      caFile: {{ .Values.metric.others.kubeEtcd.serviceMonitor.caFile }}
+      {{- end }}
+      {{- if  .Values.metric.others.kubeEtcd.serviceMonitor.certFile }}
+      certFile: {{ .Values.metric.others.kubeEtcd.serviceMonitor.certFile }}
+      {{- end }}
+      {{- if .Values.metric.others.kubeEtcd.serviceMonitor.keyFile }}
+      keyFile: {{ .Values.metric.others.kubeEtcd.serviceMonitor.keyFile }}
+      {{- end}}
+      insecureSkipVerify: {{ .Values.metric.others.kubeEtcd.serviceMonitor.insecureSkipVerify }}
+    {{- end }}
+{{- if .Values.metric.others.kubeEtcd.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .Values.metric.others.kubeEtcd.serviceMonitor.metricRelabelings | indent 4) . }}
+{{- end }}
+{{- if .Values.metric.others.kubeEtcd.serviceMonitor.relabelings }}
+    relabelings:
+{{ tpl (toYaml .Values.metric.others.kubeEtcd.serviceMonitor.relabelings | indent 4) . }}
+{{- end }}
+{{- end }}

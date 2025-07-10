@@ -1,0 +1,58 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: post-delete-{{ include "kibana.uname" . }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+  # annotations:
+  #   "helm.sh/hook": post-delete
+  #   "helm.sh/hook-delete-policy": before-hook-creation
+  #   {{- if .Values.logging.kibana.annotations }}
+  #   {{- range $key, $value := .Values.logging.kibana.annotations }}
+  #   {{ $key }}: {{ $value | quote }}
+  #   {{- end }}
+  #   {{- end }}
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: clean-kibana-token
+          image: "{{ .Values.logging.kibana.image }}:{{ .Values.logging.kibana.imageTag }}"
+          imagePullPolicy: "{{ .Values.logging.kibana.imagePullPolicy }}"
+          command: ["{{ include "kibana.home_dir" . }}/node/bin/node"]
+          args:
+           - {{ include "kibana.home_dir" . }}/helm-scripts/manage-es-token.js
+           - clean
+          env:
+            - name: "ELASTICSEARCH_USERNAME"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kibana.elasticsearch.credSecret" . }}
+                  key: username
+            - name: "ELASTICSEARCH_PASSWORD"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "kibana.elasticsearch.credSecret" . }}
+                  key: password
+            - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+              value: "{{ include "kibana.home_dir" . }}/config/certs/{{ include "kibana.elasticsearch.caFile" . }}"
+            - name: ELASTICSEARCH_HOSTS
+              value: "{{ include "kibana.elasticsearch.host" . }}"
+          volumeMounts:
+            - name: elasticsearch-certs
+              mountPath: {{ include "kibana.home_dir" . }}/config/certs
+              readOnly: true
+            - name: kibana-helm-scripts
+              mountPath: {{ include "kibana.home_dir" . }}/helm-scripts
+      serviceAccount: post-delete-{{ include "kibana.uname" . }}
+      volumes:
+        - name: elasticsearch-certs
+          secret:
+            secretName: {{ include "kibana.elasticsearch.certSecret" . }}
+        - name: kibana-helm-scripts
+          configMap:
+            name: {{ include "kibana.uname" . }}-helm-scripts
+            defaultMode: 0755
+{{- end }}

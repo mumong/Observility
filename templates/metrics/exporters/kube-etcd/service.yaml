@@ -1,0 +1,31 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeEtcd.enabled .Values.metric.others.kubeEtcd.service.enabled .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-etcd
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-etcd
+    jobLabel: kube-etcd
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  namespace: kube-system
+spec:
+  clusterIP: None
+  {{- if .Values.metric.others.kubeEtcd.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.others.kubeEtcd.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.others.kubeEtcd.service.ipDualStack.ipFamilyPolicy }}
+  {{- end }}
+  ports:
+    - name: {{ .Values.metric.others.kubeEtcd.serviceMonitor.port }}
+      port: {{ .Values.metric.others.kubeEtcd.service.port }}
+      protocol: TCP
+      targetPort: {{ .Values.metric.others.kubeEtcd.service.targetPort }}
+{{- if .Values.metric.others.kubeEtcd.endpoints }}{{- else }}
+  selector:
+    {{- if .Values.metric.others.kubeEtcd.service.selector }}
+{{ toYaml .Values.metric.others.kubeEtcd.service.selector | indent 4 }}
+    {{- else}}
+    component: etcd
+    {{- end}}
+{{- end }}
+  type: ClusterIP
+{{- end -}}

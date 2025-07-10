@@ -1,0 +1,20 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeProxy.enabled .Values.metric.others.kubeProxy.endpoints .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-proxy
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-proxy
+    k8s-app: kube-proxy
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  namespace: kube-system
+subsets:
+  - addresses:
+      {{- range .Values.metric.others.kubeProxy.endpoints }}
+      - ip: {{ . }}
+      {{- end }}
+    ports:
+      - name: {{ .Values.metric.others.kubeProxy.serviceMonitor.port }}
+        port: {{ .Values.metric.others.kubeProxy.service.port }}
+        protocol: TCP
+{{- end }}

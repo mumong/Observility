@@ -1,0 +1,32 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeDns.enabled .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-dns
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-dns
+    jobLabel: kube-dns
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  namespace: kube-system
+spec:
+  clusterIP: None
+  {{- if .Values.metric.others.kubeDns.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.others.kubeDns.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.others.kubeDns.service.ipDualStack.ipFamilyPolicy }}
+  {{- end }}
+  ports:
+    - name: http-metrics-dnsmasq
+      port: {{ .Values.metric.others.kubeDns.service.dnsmasq.port }}
+      protocol: TCP
+      targetPort: {{ .Values.metric.others.kubeDns.service.dnsmasq.targetPort }}
+    - name: http-metrics-skydns
+      port: {{ .Values.metric.others.kubeDns.service.skydns.port }}
+      protocol: TCP
+      targetPort: {{ .Values.metric.others.kubeDns.service.skydns.targetPort }}
+  selector:
+    {{- if .Values.metric.others.kubeDns.service.selector }}
+{{ toYaml .Values.metric.others.kubeDns.service.selector | indent 4 }}
+    {{- else}}
+    k8s-app: kube-dns
+    {{- end}}
+{{- end }}

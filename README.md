@@ -1,93 +1,90 @@
-# observability
+# 统一可观测性
 
+![版本: 1.0.0](https://img.shields.io/badge/版本-1.0.0-informational?style=flat-square) ![类型: application](https://img.shields.io/badge/类型-application-informational?style=flat-square)
 
+集成监控指标、日志和追踪的Kubernetes可观测性解决方案。
 
-## Getting started
+## 快速开始
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin http://192.168.1.63/platform/observability.git
-git branch -M main
-git push -uf origin main
+```bash
+helm install obs . -n observability --create-namespace
 ```
 
-## Integrate with your tools
+## 简介
 
-- [ ] [Set up project integrations](http://192.168.1.63/platform/observability/-/settings/integrations)
+本Chart整合了三大可观测性支柱：
 
-## Collaborate with your team
+- **指标监控**: 系统和应用性能监控
+- **日志**: 集中式日志收集分析
+- **分布式追踪**: 请求链路追踪
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 组件列表
 
-## Test and Deploy
+### 指标监控
+- Grafana - 数据可视化
+- Kube-state-metrics - Kubernetes对象指标
+- Node Exporter - 主机指标采集
+- Prometheus operator
+- Alertmanager
+- Prometheus
 
-Use the built-in continuous integration in GitLab.
+### 日志
+- Elasticsearch - 日志存储和搜索引擎
+- Filebeat - 日志收集和转发
+- Kibana - 日志可视化和分析
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### 追踪
+- DeepFlow - 全栈可观测性平台
+  - ClickHouse - 高性能分析数据库
+  - MySQL - 元数据存储
+  - DeepFlow Agent - 分布式数据采集
+  - DeepFlow Server 
 
-***
+## 安装
 
-# Editing this README
+```bash
+helm install obs . -n observability --create-namespace
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 卸载
 
-## Suggestions for a good README
+```bash
+helm uninstall obs -n observability
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## 主要参数
 
-## Name
-Choose a self-explaining name for your project.
+### 指标监控配置
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+| 参数名称                              | 描述                              | 默认值  |
+| ----------------------------------- | --------------------------------- | ------- |
+| `metric.enabled`                | 启用监控组件                       | `true`  |
+| `metric.grafana.enabled`        | 启用Grafana                       | `true`  |
+| `metric.kube-state-metrics.enabled` | 启用kube-state-metrics        | `true`  |
+| `metric.prometheus-node-exporter.enabled` | 启用node-exporter       | `true`  |
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### 日志配置
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+| 参数名称                   | 描述                              | 默认值  |
+| ------------------------ | --------------------------------- | ------- |
+| `logging.enabled`        | 启用日志组件                       | `true`  |
+| `logging.elasticsearch.enabled` | 启用Elasticsearch           | `true`  |
+| `logging.filebeat.enabled` | 启用Filebeat                    | `true`  |
+| `logging.kibana.enabled` | 启用Kibana                        | `true`  |
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### 追踪配置
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+| 参数名称                         | 描述                           | 默认值  |
+| ------------------------------ | ------------------------------ | ------- |
+| `tracing.enabled`              | 启用追踪组件                    | `true`  |
+| `tracing.clickhouse.enabled`   | 启用ClickHouse                 | `true`  |
+| `tracing.mysql.enabled`        | 启用MySQL                      | `true`  |
+| `tracing.deepflow-agent.enabled` | 启用DeepFlow agent          | `true`  |
+| `tracing.grafana.enabled`      | 启用DeepFlow专用Grafana        | `true`  |
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+> 更多参数请参考`values.yaml`文件。
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+查看Pod日志：
+```bash
+kubectl logs -f <pod名称> -n observability
+``` 

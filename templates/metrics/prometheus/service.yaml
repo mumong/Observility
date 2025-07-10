@@ -1,0 +1,84 @@
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.prometheus.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-prometheus
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-prometheus
+    self-monitor: {{ .Values.metric.prometheus.serviceMonitor.selfMonitor | quote }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.prometheus.service.labels }}
+{{ toYaml .Values.metric.prometheus.service.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.prometheus.service.annotations }}
+  annotations:
+{{ toYaml .Values.metric.prometheus.service.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.metric.prometheus.service.clusterIP }}
+  clusterIP: {{ .Values.metric.prometheus.service.clusterIP }}
+{{- end }}
+{{- if .Values.metric.prometheus.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.prometheus.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.prometheus.service.ipDualStack.ipFamilyPolicy }}
+{{- end }}
+{{- if .Values.metric.prometheus.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.metric.prometheus.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.metric.prometheus.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.metric.prometheus.service.loadBalancerIP }}
+{{- end }}
+{{- if .Values.metric.prometheus.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range $cidr := .Values.metric.prometheus.service.loadBalancerSourceRanges }}
+    - {{ $cidr }}
+  {{- end }}
+{{- end }}
+{{- if ne .Values.metric.prometheus.service.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.metric.prometheus.service.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  - name: {{ .Values.metric.prometheus.prometheusSpec.portName }}
+    {{- if eq .Values.metric.prometheus.service.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.service.nodePort }}
+    {{- end }}
+    port: {{ .Values.metric.prometheus.service.port }}
+    targetPort: {{ .Values.metric.prometheus.service.targetPort }}
+  - name: reloader-web
+    {{- if semverCompare "> 1.20.0-0" $kubeTargetVersion }}
+    appProtocol: http
+    {{- end }}
+    port: {{ .Values.metric.prometheus.service.reloaderWebPort }}
+    targetPort: reloader-web
+  {{- if .Values.metric.prometheus.thanosIngress.enabled }}
+  - name: grpc
+    {{- if eq .Values.metric.prometheus.service.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.thanosIngress.nodePort }}
+    {{- end }}
+    port: {{ .Values.metric.prometheus.thanosIngress.servicePort }}
+    targetPort: {{ .Values.metric.prometheus.thanosIngress.servicePort }}
+  {{- end }}
+{{- if .Values.metric.prometheus.service.additionalPorts }}
+{{ toYaml .Values.metric.prometheus.service.additionalPorts | indent 2 }}
+{{- end }}
+  publishNotReadyAddresses: {{ .Values.metric.prometheus.service.publishNotReadyAddresses }}
+  selector:
+    {{- if .Values.metric.prometheus.agentMode }}
+    app.kubernetes.io/name: prometheus-agent
+    {{- else }}
+    app.kubernetes.io/name: prometheus
+    {{- end }}
+    operator.prometheus.io/name: {{ template "kube-prometheus-stack.prometheus.crname" . }}
+{{- if .Values.metric.prometheus.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.metric.prometheus.service.sessionAffinity }}
+{{- end }}
+{{- if eq .Values.metric.prometheus.service.sessionAffinity "ClientIP" }}
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: {{ .Values.metric.prometheus.service.sessionAffinityConfig.clientIP.timeoutSeconds }}
+{{- end }}
+  type: "{{ .Values.metric.prometheus.service.type }}"
+{{- end }}

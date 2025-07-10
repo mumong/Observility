@@ -1,0 +1,246 @@
+{{- $namespace := printf "%s" (include "kube-prometheus-stack.namespace" .) }}
+{{- $defaultKubeletSvcName := printf "%s-kubelet" (include "kube-prometheus-stack.fullname" .) }}
+{{- if and .Values.metric.enabled .Values.metric.prometheusOperator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "kube-prometheus-stack.operator.fullname" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    {{- include "kube-prometheus-stack.prometheus-operator.labels" . | nindent 4 }}
+{{- if .Values.metric.prometheusOperator.labels }}
+{{ toYaml .Values.metric.prometheusOperator.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.prometheusOperator.annotations }}
+  annotations:
+{{ toYaml .Values.metric.prometheusOperator.annotations | indent 4 }}
+{{- end }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: {{ .Values.metric.prometheusOperator.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ template "kube-prometheus-stack.name" . }}-operator
+      release: {{ $.Release.Name | quote }}
+  {{- with .Values.metric.prometheusOperator.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "kube-prometheus-stack.prometheus-operator.labels" . | nindent 8 }}
+{{- if .Values.metric.prometheusOperator.podLabels }}
+{{ toYaml .Values.metric.prometheusOperator.podLabels | indent 8 }}
+{{- end }}
+{{- if .Values.metric.prometheusOperator.podAnnotations }}
+      annotations:
+{{ toYaml .Values.metric.prometheusOperator.podAnnotations | indent 8 }}
+{{- end }}
+    spec:
+    {{- if .Values.metric.prometheusOperator.priorityClassName }}
+      priorityClassName: {{ .Values.metric.prometheusOperator.priorityClassName }}
+    {{- end }}
+    {{- if .Values.metric.extra.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- include "kube-prometheus-stack.imagePullSecrets" . | indent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ template "kube-prometheus-stack.name" . }}
+          {{- $configReloaderRegistry := .Values.metric.extra.global.imageRegistry | default .Values.metric.prometheusOperator.prometheusConfigReloader.image.registry -}}
+          {{- $operatorRegistry := .Values.metric.extra.global.imageRegistry | default .Values.metric.prometheusOperator.image.registry -}}
+          {{- $thanosRegistry := .Values.metric.extra.global.imageRegistry | default .Values.metric.prometheusOperator.thanosImage.registry -}}
+          {{- if .Values.metric.prometheusOperator.image.sha }}
+          image: "{{ $operatorRegistry }}/{{ .Values.metric.prometheusOperator.image.repository }}:{{ .Values.metric.prometheusOperator.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.metric.prometheusOperator.image.sha }}"
+          {{- else }}
+          image: "{{ $operatorRegistry }}/{{ .Values.metric.prometheusOperator.image.repository }}:{{ .Values.metric.prometheusOperator.image.tag | default .Chart.AppVersion }}"
+          {{- end }}
+          imagePullPolicy: "{{ .Values.metric.prometheusOperator.image.pullPolicy }}"
+          args:
+            {{- if .Values.metric.prometheusOperator.kubeletService.enabled }}
+            - --kubelet-service={{ .Values.metric.prometheusOperator.kubeletService.namespace }}/{{ default $defaultKubeletSvcName .Values.metric.prometheusOperator.kubeletService.name  }}
+            {{- if .Values.metric.prometheusOperator.kubeletService.selector }}
+            - --kubelet-selector={{ .Values.metric.prometheusOperator.kubeletService.selector }}
+            {{- end }}
+            {{- end }}
+            - --kubelet-endpoints={{ .Values.metric.prometheusOperator.kubeletEndpointsEnabled }}
+            - --kubelet-endpointslice={{ .Values.metric.prometheusOperator.kubeletEndpointSliceEnabled }}
+            {{- if .Values.metric.prometheusOperator.logFormat }}
+            - --log-format={{ .Values.metric.prometheusOperator.logFormat }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.logLevel }}
+            - --log-level={{ .Values.metric.prometheusOperator.logLevel }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.denyNamespaces }}
+            - --deny-namespaces={{ tpl (.Values.metric.prometheusOperator.denyNamespaces | join ",") $ }}
+            {{- end }}
+            {{- with $.Values.metric.prometheusOperator.namespaces }}
+            {{- $namespaces := list }}
+            {{- if .releaseNamespace }}
+            {{- $namespaces = append $namespaces $namespace }}
+            {{- end }}
+            {{- if .additional }}
+            {{- range $ns := .additional }}
+            {{- $namespaces = append $namespaces (tpl $ns $) }}
+            {{- end }}
+            {{- end }}
+            - --namespaces={{ $namespaces | mustUniq | join "," }}
+            {{- end }}
+            - --localhost=127.0.0.1
+            {{- if .Values.metric.prometheusOperator.prometheusDefaultBaseImage }}
+            - --prometheus-default-base-image={{ .Values.metric.extra.global.imageRegistry | default .Values.metric.prometheusOperator.prometheusDefaultBaseImageRegistry }}/{{ .Values.metric.prometheusOperator.prometheusDefaultBaseImage }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.alertmanagerDefaultBaseImage }}
+            - --alertmanager-default-base-image={{ .Values.metric.extra.global.imageRegistry | default .Values.metric.prometheusOperator.alertmanagerDefaultBaseImageRegistry }}/{{ .Values.metric.prometheusOperator.alertmanagerDefaultBaseImage }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.prometheusConfigReloader.image.sha }}
+            - --prometheus-config-reloader={{ $configReloaderRegistry }}/{{ .Values.metric.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.metric.prometheusOperator.prometheusConfigReloader.image.tag | default .Chart.AppVersion }}@sha256:{{ .Values.metric.prometheusOperator.prometheusConfigReloader.image.sha }}
+            {{- else }}
+            - --prometheus-config-reloader={{ $configReloaderRegistry }}/{{ .Values.metric.prometheusOperator.prometheusConfigReloader.image.repository }}:{{ .Values.metric.prometheusOperator.prometheusConfigReloader.image.tag | default .Chart.AppVersion }}
+            {{- end }}
+            - --config-reloader-cpu-request={{ (((.Values.metric.prometheusOperator.prometheusConfigReloader.resources).requests).cpu) | default 0 }}
+            - --config-reloader-cpu-limit={{ (((.Values.metric.prometheusOperator.prometheusConfigReloader.resources).limits).cpu) | default 0 }}
+            - --config-reloader-memory-request={{ (((.Values.metric.prometheusOperator.prometheusConfigReloader.resources).requests).memory) | default 0 }}
+            - --config-reloader-memory-limit={{ (((.Values.metric.prometheusOperator.prometheusConfigReloader.resources).limits).memory) | default 0 }}
+            {{- if .Values.metric.prometheusOperator.prometheusConfigReloader.enableProbe }}
+            - --enable-config-reloader-probes=true
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.alertmanagerInstanceNamespaces }}
+            - --alertmanager-instance-namespaces={{ .Values.metric.prometheusOperator.alertmanagerInstanceNamespaces | join "," }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.alertmanagerInstanceSelector }}
+            - --alertmanager-instance-selector={{ .Values.metric.prometheusOperator.alertmanagerInstanceSelector }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.alertmanagerConfigNamespaces }}
+            - --alertmanager-config-namespaces={{ .Values.metric.prometheusOperator.alertmanagerConfigNamespaces | join "," }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.prometheusInstanceNamespaces }}
+            - --prometheus-instance-namespaces={{ .Values.metric.prometheusOperator.prometheusInstanceNamespaces | join "," }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.prometheusInstanceSelector }}
+            - --prometheus-instance-selector={{ .Values.metric.prometheusOperator.prometheusInstanceSelector }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.thanosImage.sha }}
+            - --thanos-default-base-image={{ $thanosRegistry }}/{{ .Values.metric.prometheusOperator.thanosImage.repository }}:{{ .Values.metric.prometheusOperator.thanosImage.tag }}@sha256:{{ .Values.metric.prometheusOperator.thanosImage.sha }}
+            {{- else }}
+            - --thanos-default-base-image={{ $thanosRegistry }}/{{ .Values.metric.prometheusOperator.thanosImage.repository }}:{{ .Values.metric.prometheusOperator.thanosImage.tag }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.thanosRulerInstanceNamespaces }}
+            - --thanos-ruler-instance-namespaces={{ .Values.metric.prometheusOperator.thanosRulerInstanceNamespaces | join "," }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.thanosRulerInstanceSelector }}
+            - --thanos-ruler-instance-selector={{ .Values.metric.prometheusOperator.thanosRulerInstanceSelector }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.secretFieldSelector }}
+            - --secret-field-selector={{ tpl (.Values.metric.prometheusOperator.secretFieldSelector) $ }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.clusterDomain }}
+            - --cluster-domain={{ .Values.metric.prometheusOperator.clusterDomain }}
+            {{- end }}
+            {{- if .Values.metric.prometheusOperator.tls.enabled }}
+            - --web.enable-tls=true
+            - --web.cert-file=/cert/{{ if .Values.metric.prometheusOperator.admissionWebhooks.certManager.enabled }}tls.crt{{ else }}cert{{ end }}
+            - --web.key-file=/cert/{{ if .Values.metric.prometheusOperator.admissionWebhooks.certManager.enabled }}tls.key{{ else }}key{{ end }}
+            - --web.listen-address=:{{ .Values.metric.prometheusOperator.tls.internalPort }}
+            - --web.tls-min-version={{ .Values.metric.prometheusOperator.tls.tlsMinVersion }}
+            {{- else }}
+            - --web.enable-tls=false
+            - --web.listen-address=:8080
+            {{- end }}
+            {{- with .Values.metric.prometheusOperator.extraArgs }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
+          {{- with .Values.metric.prometheusOperator.lifecycle }}
+          lifecycle: {{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.metric.prometheusOperator.tls.enabled }}
+          ports:
+            - containerPort: {{ .Values.metric.prometheusOperator.tls.internalPort }}
+              name: https
+          {{- else }}
+          ports:
+            - containerPort: 8080
+              name: http
+          {{- end }}
+          env:
+          {{- range $key, $value := .Values.metric.prometheusOperator.env }}
+          - name: {{ $key }}
+            value: {{ $value | quote }}
+          {{- end }}
+          resources:
+{{ toYaml .Values.metric.prometheusOperator.resources | indent 12 }}
+          securityContext:
+{{ toYaml .Values.metric.prometheusOperator.containerSecurityContext | indent 12 }}
+          volumeMounts:
+          {{- if .Values.metric.prometheusOperator.tls.enabled }}
+            - name: tls-secret
+              mountPath: /cert
+              readOnly: true
+          {{- end }}
+          {{- with .Values.metric.prometheusOperator.extraVolumeMounts }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.metric.prometheusOperator.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.metric.prometheusOperator.tls.enabled | ternary "https" "http" }}
+              scheme: {{ .Values.metric.prometheusOperator.tls.enabled | ternary "HTTPS" "HTTP" }}
+            initialDelaySeconds: {{ .Values.metric.prometheusOperator.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.metric.prometheusOperator.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.metric.prometheusOperator.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.metric.prometheusOperator.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.metric.prometheusOperator.readinessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.metric.prometheusOperator.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.metric.prometheusOperator.tls.enabled | ternary "https" "http" }}
+              scheme: {{ .Values.metric.prometheusOperator.tls.enabled | ternary "HTTPS" "HTTP" }}
+            initialDelaySeconds: {{ .Values.metric.prometheusOperator.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.metric.prometheusOperator.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.metric.prometheusOperator.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.metric.prometheusOperator.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.metric.prometheusOperator.livenessProbe.failureThreshold }}
+          {{- end }}
+      volumes:
+        {{- if .Values.metric.prometheusOperator.tls.enabled }}
+        - name: tls-secret
+          secret:
+            defaultMode: 420
+            secretName: {{ template "kube-prometheus-stack.fullname" . }}-admission
+        {{- end }}
+        {{- with .Values.metric.prometheusOperator.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    {{- with .Values.metric.prometheusOperator.dnsConfig }}
+      dnsConfig:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+{{- if .Values.metric.prometheusOperator.securityContext }}
+      securityContext:
+{{ toYaml .Values.metric.prometheusOperator.securityContext | indent 8 }}
+{{- end }}
+      serviceAccountName: {{ template "kube-prometheus-stack.operator.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.metric.prometheusOperator.automountServiceAccountToken }}
+{{- if .Values.metric.prometheusOperator.hostNetwork }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+{{- end }}
+    {{- with .Values.metric.prometheusOperator.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.metric.prometheusOperator.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.metric.prometheusOperator.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ . }}
+    {{- end }}
+    {{- with .Values.metric.prometheusOperator.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+{{- end }}

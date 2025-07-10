@@ -1,0 +1,22 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeControllerManager.enabled .Values.metric.others.kubeControllerManager.endpoints .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-controller-manager
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-controller-manager
+    k8s-app: kube-controller-manager
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  namespace: kube-system
+subsets:
+  - addresses:
+      {{- range .Values.metric.others.kubeControllerManager.endpoints }}
+      - ip: {{ . }}
+      {{- end }}
+    ports:
+      - name: {{ .Values.metric.others.kubeControllerManager.serviceMonitor.port }}
+        {{- $kubeControllerManagerDefaultInsecurePort := 10252 }}
+        {{- $kubeControllerManagerDefaultSecurePort := 10257 }}
+        port: {{ include "kube-prometheus-stack.kubeControllerManager.insecureScrape" (list . $kubeControllerManagerDefaultInsecurePort $kubeControllerManagerDefaultSecurePort .Values.metric.others.kubeControllerManager.service.port) }}
+        protocol: TCP
+{{- end }}

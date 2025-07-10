@@ -1,0 +1,55 @@
+{{- /*
+Generated from 'node-network' group from https://github.com/prometheus-operator/kube-prometheus.git
+Do not change in-place! In order to change this file first read following link:
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+*/ -}}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.metric.extra.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.metric.extra.defaultRules.create .Values.metric.extra.defaultRules.rules.network }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "node-network" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.extra.defaultRules.labels }}
+{{ toYaml .Values.metric.extra.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.metric.extra.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: node-network
+    rules:
+{{- if not (.Values.metric.extra.defaultRules.disabled.NodeNetworkInterfaceFlapping | default false) }}
+    - alert: NodeNetworkInterfaceFlapping
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.network }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.network | indent 8 }}
+{{- end }}
+        description: Network interface "{{`{{`}} $labels.device {{`}}`}}" changing its up status often on node-exporter {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod {{`}}`}}
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/general/nodenetworkinterfaceflapping
+        summary: Network interface is often changing its status
+      expr: changes(node_network_up{job="node-exporter",device!~"veth.+"}[2m]) > 2
+      for: {{ dig "NodeNetworkInterfaceFlapping" "for" "2m" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "NodeNetworkInterfaceFlapping" "severity" "warning" .Values.metric.extra.customRules }}
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.network }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.network }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

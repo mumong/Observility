@@ -1,0 +1,24 @@
+{{- if and .Values.metric.enabled .Values.metric.alertmanager.enabled .Values.metric.alertmanager.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
+  namespace: {{ template "kube-prometheus-stack-alertmanager.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+spec:
+  {{- if .Values.metric.alertmanager.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.metric.alertmanager.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.metric.alertmanager.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.metric.alertmanager.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  {{- if .Values.metric.alertmanager.podDisruptionBudget.unhealthyPodEvictionPolicy }}
+  unhealthyPodEvictionPolicy: {{ .Values.metric.alertmanager.podDisruptionBudget.unhealthyPodEvictionPolicy }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: alertmanager
+      alertmanager: {{ template "kube-prometheus-stack.alertmanager.crname" . }}
+{{- end }}

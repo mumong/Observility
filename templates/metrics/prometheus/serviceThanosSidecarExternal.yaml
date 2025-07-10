@@ -1,0 +1,46 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.prometheus.thanosServiceExternal.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-external
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.prometheus.thanosServiceExternal.labels }}
+{{ toYaml .Values.metric.prometheus.thanosServiceExternal.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.prometheus.thanosServiceExternal.annotations }}
+  annotations:
+{{ toYaml .Values.metric.prometheus.thanosServiceExternal.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.metric.prometheus.thanosServiceExternal.type }}
+{{- if .Values.metric.prometheus.thanosServiceExternal.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.metric.prometheus.thanosServiceExternal.loadBalancerIP }}
+{{- end }}
+{{- if .Values.metric.prometheus.thanosServiceExternal.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range $cidr := .Values.metric.prometheus.thanosServiceExternal.loadBalancerSourceRanges }}
+    - {{ $cidr }}
+  {{- end }}
+{{- end }}
+{{- if ne .Values.metric.prometheus.thanosServiceExternal.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.metric.prometheus.thanosServiceExternal.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  - name: {{ .Values.metric.prometheus.thanosServiceExternal.portName }}
+    port: {{ .Values.metric.prometheus.thanosServiceExternal.port }}
+    targetPort: {{ .Values.metric.prometheus.thanosServiceExternal.targetPort }}
+    {{- if eq .Values.metric.prometheus.thanosServiceExternal.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.thanosServiceExternal.nodePort }}
+    {{- end }}
+  - name: {{ .Values.metric.prometheus.thanosServiceExternal.httpPortName }}
+    port: {{ .Values.metric.prometheus.thanosServiceExternal.httpPort }}
+    targetPort: {{ .Values.metric.prometheus.thanosServiceExternal.targetHttpPort }}
+    {{- if eq .Values.metric.prometheus.thanosServiceExternal.type "NodePort" }}
+    nodePort: {{ .Values.metric.prometheus.thanosServiceExternal.httpNodePort }}
+    {{- end }}
+  selector:
+    app.kubernetes.io/name: prometheus
+    operator.prometheus.io/name: {{ template "kube-prometheus-stack.prometheus.crname" . }}
+{{- end }}

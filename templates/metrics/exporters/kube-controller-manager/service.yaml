@@ -1,0 +1,33 @@
+{{- if and .Values.metric.enabled .Values.metric.others.kubeControllerManager.enabled .Values.metric.others.kubeControllerManager.service.enabled .Values.metric.others.kubernetesServiceMonitors.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-kube-controller-manager
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-kube-controller-manager
+    jobLabel: kube-controller-manager
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+  namespace: kube-system
+spec:
+  clusterIP: None
+  {{- if .Values.metric.others.kubeControllerManager.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.others.kubeControllerManager.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.others.kubeControllerManager.service.ipDualStack.ipFamilyPolicy }}
+  {{- end }}
+  ports:
+    - name: {{ .Values.metric.others.kubeControllerManager.serviceMonitor.port }}
+      {{- $kubeControllerManagerDefaultInsecurePort := 10252 }}
+      {{- $kubeControllerManagerDefaultSecurePort := 10257 }}
+      port: {{ include "kube-prometheus-stack.kubeControllerManager.insecureScrape" (list . $kubeControllerManagerDefaultInsecurePort $kubeControllerManagerDefaultSecurePort .Values.metric.others.kubeControllerManager.service.port) }}
+      protocol: TCP
+      targetPort: {{ include "kube-prometheus-stack.kubeControllerManager.insecureScrape" (list . $kubeControllerManagerDefaultInsecurePort $kubeControllerManagerDefaultSecurePort .Values.metric.others.kubeControllerManager.service.targetPort) }}
+{{- if .Values.metric.others.kubeControllerManager.endpoints }}{{- else }}
+  selector:
+    {{- if .Values.metric.others.kubeControllerManager.service.selector }}
+{{ toYaml .Values.metric.others.kubeControllerManager.service.selector | indent 4 }}
+    {{- else}}
+    component: kube-controller-manager
+    {{- end}}
+{{- end }}
+  type: ClusterIP
+{{- end }}

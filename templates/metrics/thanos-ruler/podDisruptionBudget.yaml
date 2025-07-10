@@ -1,0 +1,21 @@
+{{- if and .Values.metric.others.thanosRuler.enabled .Values.metric.others.thanosRuler.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+spec:
+  {{- if .Values.metric.others.thanosRuler.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.metric.others.thanosRuler.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  {{- if .Values.metric.others.thanosRuler.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.metric.others.thanosRuler.podDisruptionBudget.maxUnavailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thanos-ruler
+      thanos-ruler: {{ template "kube-prometheus-stack.thanosRuler.crname" . }}
+{{- end }}

@@ -1,0 +1,35 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kibana.uname" . }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+{{- if .Values.logging.kibana.service.labels }}
+{{ toYaml .Values.logging.kibana.service.labels | indent 4}}
+{{- end }}
+{{- with .Values.logging.kibana.service.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.logging.kibana.service.type }}
+{{- if .Values.logging.kibana.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.logging.kibana.service.loadBalancerIP }}
+{{- end }}
+{{- with .Values.logging.kibana.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+{{ toYaml . | indent 4 }}
+{{- end }}
+  ports:
+    - port: {{ .Values.logging.kibana.service.port }}
+{{- if .Values.logging.kibana.service.nodePort }}
+      nodePort: {{ .Values.logging.kibana.service.nodePort }}
+{{- end }}
+      protocol: TCP
+      name: {{ .Values.logging.kibana.service.httpPortName | default "http" }}
+      targetPort: {{ .Values.logging.kibana.httpPort }}
+  selector:
+    app: {{ include "kibana.uname" . }}
+    release: {{ .Release.Name | quote }}
+{{- end -}}

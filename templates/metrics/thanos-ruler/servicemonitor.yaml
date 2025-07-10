@@ -1,0 +1,72 @@
+{{- if and .Values.metric.others.thanosRuler.enabled .Values.metric.others.thanosRuler.serviceMonitor.selfMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- with .Values.metric.others.thanosRuler.serviceMonitor.additionalLabels }}
+{{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  {{- include "servicemonitor.scrapeLimits" .Values.metric.others.thanosRuler.serviceMonitor | nindent 2 }}
+  selector:
+    matchLabels:
+      app: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+      release: {{ $.Release.Name | quote }}
+      self-monitor: {{ .Values.metric.others.thanosRuler.serviceMonitor.selfMonitor | quote }}
+  namespaceSelector:
+    matchNames:
+      - {{ printf "%s" (include "kube-prometheus-stack.namespace" .) | quote }}
+  endpoints:
+  - port: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.portName }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.interval }}
+    interval: {{ .Values.metric.others.thanosRuler.serviceMonitor.interval }}
+    {{- end }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.proxyUrl }}
+    proxyUrl: {{ .Values.metric.others.thanosRuler.serviceMonitor.proxyUrl}}
+    {{- end }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.scheme }}
+    scheme: {{ .Values.metric.others.thanosRuler.serviceMonitor.scheme }}
+    {{- end }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.metric.others.thanosRuler.serviceMonitor.bearerTokenFile }}
+    {{- end }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.tlsConfig }}
+    tlsConfig: {{- toYaml .Values.metric.others.thanosRuler.serviceMonitor.tlsConfig | nindent 6 }}
+    {{- end }}
+    path: "{{ trimSuffix "/" .Values.metric.others.thanosRuler.thanosRulerSpec.routePrefix }}/metrics"
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.metricRelabelings }}
+    metricRelabelings: {{- tpl (toYaml .Values.metric.others.thanosRuler.serviceMonitor.metricRelabelings | nindent 6) . }}
+    {{- end }}
+    {{- if .Values.metric.others.thanosRuler.serviceMonitor.relabelings }}
+    relabelings: {{- toYaml .Values.metric.others.thanosRuler.serviceMonitor.relabelings | nindent 6 }}
+    {{- end }}
+  {{- range .Values.metric.others.thanosRuler.serviceMonitor.additionalEndpoints }}
+  - port: {{ .port }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.interval .interval }}
+    interval: {{ default $.Values.metric.others.thanosRuler.serviceMonitor.interval .interval }}
+    {{- end }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.proxyUrl .proxyUrl }}
+    proxyUrl: {{ default $.Values.metric.others.thanosRuler.serviceMonitor.proxyUrl .proxyUrl }}
+    {{- end }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.scheme .scheme }}
+    scheme: {{ default $.Values.metric.others.thanosRuler.serviceMonitor.scheme .scheme }}
+    {{- end }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.bearerTokenFile .bearerTokenFile }}
+    bearerTokenFile: {{ default $.Values.metric.others.thanosRuler.serviceMonitor.bearerTokenFile .bearerTokenFile }}
+    {{- end }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.tlsConfig .tlsConfig }}
+    tlsConfig: {{- default $.Values.metric.others.thanosRuler.serviceMonitor.tlsConfig .tlsConfig | toYaml | nindent 6 }}
+    {{- end }}
+    path: {{ .path }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.metricRelabelings .metricRelabelings }}
+    metricRelabelings: {{- tpl (default $.Values.metric.others.thanosRuler.serviceMonitor.metricRelabelings .metricRelabelings | toYaml | nindent 6) . }}
+    {{- end }}
+    {{- if or $.Values.metric.others.thanosRuler.serviceMonitor.relabelings .relabelings }}
+    relabelings: {{- default $.Values.metric.others.thanosRuler.serviceMonitor.relabelings .relabelings | toYaml | nindent 6 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

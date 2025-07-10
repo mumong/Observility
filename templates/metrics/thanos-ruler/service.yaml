@@ -1,0 +1,57 @@
+{{- if and .Values.metric.others.thanosRuler.enabled .Values.metric.others.thanosRuler.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+    self-monitor: {{ .Values.metric.others.thanosRuler.serviceMonitor.selfMonitor | quote }}
+{{- include "kube-prometheus-stack.labels" . | indent 4 -}}
+{{- if .Values.metric.others.thanosRuler.service.labels }}
+{{ toYaml .Values.metric.others.thanosRuler.service.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.service.annotations }}
+  annotations:
+{{ toYaml .Values.metric.others.thanosRuler.service.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.metric.others.thanosRuler.service.clusterIP }}
+  clusterIP: {{ .Values.metric.others.thanosRuler.service.clusterIP }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.others.thanosRuler.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.others.thanosRuler.service.ipDualStack.ipFamilyPolicy }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.metric.others.thanosRuler.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.metric.others.thanosRuler.service.loadBalancerIP }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range $cidr := .Values.metric.others.thanosRuler.service.loadBalancerSourceRanges }}
+    - {{ $cidr }}
+  {{- end }}
+{{- end }}
+{{- if ne .Values.metric.others.thanosRuler.service.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.metric.others.thanosRuler.service.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  - name: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.portName }}
+  {{- if eq .Values.metric.others.thanosRuler.service.type "NodePort" }}
+    nodePort: {{ .Values.metric.others.thanosRuler.service.nodePort }}
+  {{- end }}
+    port: {{ .Values.metric.others.thanosRuler.service.port }}
+    targetPort: {{ .Values.metric.others.thanosRuler.service.targetPort }}
+    protocol: TCP
+{{- if .Values.metric.others.thanosRuler.service.additionalPorts }}
+{{ toYaml .Values.metric.others.thanosRuler.service.additionalPorts | indent 2 }}
+{{- end }}
+  selector:
+    app.kubernetes.io/name: thanos-ruler
+    thanos-ruler: {{ template "kube-prometheus-stack.thanosRuler.crname" . }}
+  type: "{{ .Values.metric.others.thanosRuler.service.type }}"
+{{- end }}

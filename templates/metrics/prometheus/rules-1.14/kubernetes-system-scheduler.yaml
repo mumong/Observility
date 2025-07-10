@@ -1,0 +1,57 @@
+{{- /*
+Generated from 'kubernetes-system-scheduler' group from https://github.com/prometheus-operator/kube-prometheus.git
+Do not change in-place! In order to change this file first read following link:
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+*/ -}}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.metric.extra.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.metric.extra.defaultRules.create .Values.metric.others.kubeScheduler.enabled .Values.metric.extra.defaultRules.rules.kubeSchedulerAlerting }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "kubernetes-system-scheduler" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.extra.defaultRules.labels }}
+{{ toYaml .Values.metric.extra.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.metric.extra.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: kubernetes-system-scheduler
+    rules:
+{{- if .Values.metric.others.kubeScheduler.enabled }}
+{{- if not (.Values.metric.extra.defaultRules.disabled.KubeSchedulerDown | default false) }}
+    - alert: KubeSchedulerDown
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeSchedulerAlerting }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeSchedulerAlerting | indent 8 }}
+{{- end }}
+        description: KubeScheduler has disappeared from Prometheus target discovery.
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/kubernetes/kubeschedulerdown
+        summary: Target disappeared from Prometheus target discovery.
+      expr: absent(up{job="kube-scheduler"} == 1)
+      for: {{ dig "KubeSchedulerDown" "for" "15m" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeSchedulerDown" "severity" "critical" .Values.metric.extra.customRules }}
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeSchedulerAlerting }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeSchedulerAlerting }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

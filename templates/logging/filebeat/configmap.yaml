@@ -1,0 +1,85 @@
+{{- if and .Values.logging.enabled .Values.logging.filebeat.enabled .Values.logging.filebeat.filebeatConfig }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "filebeat.fullname" . }}-config
+  labels:
+    app: "{{ template "filebeat.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+data:
+{{- range $path, $config := .Values.logging.filebeat.filebeatConfig }}
+  {{ $path }}: |
+{{ $config | indent 4 -}}
+{{- end -}}
+{{- end -}}
+
+{{- if and .Values.logging.enabled .Values.logging.filebeat.enabled .Values.logging.filebeat.daemonset.enabled .Values.logging.filebeat.daemonset.filebeatConfig }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "filebeat.fullname" . }}-daemonset-config
+  labels:
+    app: "{{ template "filebeat.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+data:
+{{- range $path, $config := .Values.logging.filebeat.daemonset.filebeatConfig }}
+  {{ $path }}: |
+{{- if eq $path "filebeat.yml" }}
+    filebeat.inputs:
+    - type: container
+      paths:
+        - /var/log/containers/*.log
+      processors:
+      - add_kubernetes_metadata:
+          host: ${NODE_NAME}
+          matchers:
+          - logs_path:
+              logs_path: "/var/log/containers/"
+    output.elasticsearch:
+      hosts: ["${ELASTICSEARCH_HOSTS}"]
+      username: '${ELASTICSEARCH_USERNAME}'
+      password: '${ELASTICSEARCH_PASSWORD}'
+      protocol: https
+      ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
+{{- else }}
+{{ $config | indent 4 -}}
+{{- end }}
+{{- end -}}
+{{- end -}}
+
+{{- if and .Values.logging.enabled .Values.logging.filebeat.enabled .Values.logging.filebeat.deployment.enabled .Values.logging.filebeat.deployment.filebeatConfig }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "filebeat.fullname" . }}-deployment-config
+  labels:
+    app: "{{ template "filebeat.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+data:
+{{- range $path, $config := .Values.logging.filebeat.deployment.filebeatConfig }}
+  {{ $path }}: |
+{{- if eq $path "filebeat.yml" }}
+    filebeat.inputs:
+      - type: log
+        paths:
+          - /usr/share/filebeat/logs/filebeat
+    output.elasticsearch:
+      hosts: ["${ELASTICSEARCH_HOSTS}"]
+      username: "${ELASTICSEARCH_USERNAME}"
+      password: "${ELASTICSEARCH_PASSWORD}"
+      protocol: https
+      ssl.certificate_authorities: ["/usr/share/filebeat/certs/ca.crt"]
+{{- else }}
+{{ $config | indent 4 -}}
+{{- end }}
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,63 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+{{- if .Values.logging.kibana.ingress.enabled -}}
+{{- $fullName := include "kibana.uname" . -}}
+{{- $httpPort := .Values.logging.kibana.httpPort -}}
+{{- $pathtype := .Values.logging.kibana.ingress.pathtype -}}
+{{- $ingressPath := .Values.logging.kibana.ingress.path -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+{{- with .Values.logging.kibana.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{- if .Values.logging.kibana.ingress.className }}
+  ingressClassName: {{ .Values.logging.kibana.ingress.className | quote }}
+  {{- end }}
+{{- if .Values.logging.kibana.ingress.tls }}
+  tls:
+  {{- if .ingressPath }}
+  {{- range .Values.logging.kibana.ingress.tls }}
+  - hosts:
+    {{- range .hosts }}
+      - {{ . }}
+    {{- end }}
+    secretName: {{ .secretName }}
+  {{- end }}
+{{- else }}
+{{ toYaml .Values.logging.kibana.ingress.tls | indent 4 }}
+  {{- end }}
+{{- end }}
+  rules:
+  {{- range .Values.logging.kibana.ingress.hosts }}
+    {{- if $ingressPath }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: {{ $ingressPath }}
+        pathType: {{ $pathtype }}
+        backend:
+          service:
+            name: {{ $fullName }}
+            port: 
+              number: {{ $httpPort }}
+  {{- else }}
+  - host: {{ .host }}
+    http:
+      paths:
+      {{- range .paths }}
+      - path: {{ .path }}
+        pathType: {{ $pathtype }}
+        backend:
+          service:
+            name: {{ $fullName }}
+            port:
+              number: {{ .servicePort | default $httpPort }}
+      {{- end }}
+  {{- end }}
+ {{- end }}
+ {{- end }}
+ {{- end }}

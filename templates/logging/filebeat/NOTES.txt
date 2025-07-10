@@ -1,0 +1,4 @@
+{{- if and .Values.logging.enabled .Values.logging.filebeat.enabled -}}
+1. Watch all containers come up.
+  $ kubectl get pods --namespace={{ .Release.Namespace }} -l app={{ template "filebeat.fullname" . }} -w
+{{- end -}}

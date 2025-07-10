@@ -1,0 +1,23 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: post-delete-{{ include "kibana.uname" . }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-delete-policy": before-hook-creation
+    {{- if .Values.logging.kibana.annotations }}
+    {{- range $key, $value := .Values.logging.kibana.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- end }}
+subjects:
+  - kind: ServiceAccount
+    name: post-delete-{{ include "kibana.uname" . }}
+    namespace: {{ .Release.Namespace | quote }}
+roleRef:
+  kind: Role
+  name: post-delete-{{ include "kibana.uname" . }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

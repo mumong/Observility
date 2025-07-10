@@ -1,0 +1,159 @@
+{{- /*
+Generated from 'kube-apiserver-slos' group from https://github.com/prometheus-operator/kube-prometheus.git
+Do not change in-place! In order to change this file first read following link:
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+*/ -}}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.metric.extra.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.metric.extra.defaultRules.create .Values.metric.others.kubeApiServer.enabled .Values.metric.extra.defaultRules.rules.kubeApiserverSlos }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "kube-apiserver-slos" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.extra.defaultRules.labels }}
+{{ toYaml .Values.metric.extra.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.metric.extra.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: kube-apiserver-slos
+    rules:
+{{- if not (.Values.metric.extra.defaultRules.disabled.KubeAPIErrorBudgetBurn | default false) }}
+    - alert: KubeAPIErrorBudgetBurn
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos | indent 8 }}
+{{- end }}
+        description: The API server is burning too much error budget on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/kubernetes/kubeapierrorbudgetburn
+        summary: The API server is burning too much error budget.
+      expr: |-
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate1h) > (14.40 * 0.01000)
+        and on ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster)
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate5m) > (14.40 * 0.01000)
+      for: {{ dig "KubeAPIErrorBudgetBurn" "for" "2m" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        long: 1h
+        severity: {{ dig "KubeAPIErrorBudgetBurn" "severity" "critical" .Values.metric.extra.customRules }}
+        short: 5m
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.metric.extra.defaultRules.disabled.KubeAPIErrorBudgetBurn | default false) }}
+    - alert: KubeAPIErrorBudgetBurn
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos | indent 8 }}
+{{- end }}
+        description: The API server is burning too much error budget on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/kubernetes/kubeapierrorbudgetburn
+        summary: The API server is burning too much error budget.
+      expr: |-
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate6h) > (6.00 * 0.01000)
+        and on ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster)
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate30m) > (6.00 * 0.01000)
+      for: {{ dig "KubeAPIErrorBudgetBurn" "for" "15m" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        long: 6h
+        severity: {{ dig "KubeAPIErrorBudgetBurn" "severity" "critical" .Values.metric.extra.customRules }}
+        short: 30m
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.metric.extra.defaultRules.disabled.KubeAPIErrorBudgetBurn | default false) }}
+    - alert: KubeAPIErrorBudgetBurn
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos | indent 8 }}
+{{- end }}
+        description: The API server is burning too much error budget on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/kubernetes/kubeapierrorbudgetburn
+        summary: The API server is burning too much error budget.
+      expr: |-
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate1d) > (3.00 * 0.01000)
+        and on ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster)
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate2h) > (3.00 * 0.01000)
+      for: {{ dig "KubeAPIErrorBudgetBurn" "for" "1h" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        long: 1d
+        severity: {{ dig "KubeAPIErrorBudgetBurn" "severity" "warning" .Values.metric.extra.customRules }}
+        short: 2h
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.metric.extra.defaultRules.disabled.KubeAPIErrorBudgetBurn | default false) }}
+    - alert: KubeAPIErrorBudgetBurn
+      annotations:
+{{- if .Values.metric.extra.defaultRules.additionalRuleAnnotations }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleAnnotations | indent 8 }}
+{{- end }}
+{{- if .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos }}
+{{ toYaml .Values.metric.extra.defaultRules.additionalRuleGroupAnnotations.kubeApiserverSlos | indent 8 }}
+{{- end }}
+        description: The API server is burning too much error budget on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        runbook_url: {{ .Values.metric.extra.defaultRules.runbookUrl }}/kubernetes/kubeapierrorbudgetburn
+        summary: The API server is burning too much error budget.
+      expr: |-
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate3d) > (1.00 * 0.01000)
+        and on ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster)
+        sum by ({{ range $.Values.metric.extra.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster) (apiserver_request:burnrate6h) > (1.00 * 0.01000)
+      for: {{ dig "KubeAPIErrorBudgetBurn" "for" "3h" .Values.metric.extra.customRules }}
+      {{- with .Values.metric.extra.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        long: 3d
+        severity: {{ dig "KubeAPIErrorBudgetBurn" "severity" "warning" .Values.metric.extra.customRules }}
+        short: 6h
+      {{- if or .Values.metric.extra.defaultRules.additionalRuleLabels .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.metric.extra.defaultRules.additionalRuleGroupLabels.kubeApiserverSlos }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

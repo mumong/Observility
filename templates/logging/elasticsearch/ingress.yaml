@@ -1,0 +1,64 @@
+{{- if and .Values.logging.enabled .Values.logging.elasticsearch.enabled .Values.logging.elasticsearch.ingress.enabled -}}
+{{- $fullName := include "elasticsearch.uname" . -}}
+{{- $httpPort := .Values.logging.elasticsearch.httpPort -}}
+{{- $pathtype := .Values.logging.elasticsearch.ingress.pathtype -}}
+{{- $ingressPath := .Values.logging.elasticsearch.ingress.path -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ .Chart.Name }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- with .Values.logging.elasticsearch.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  {{- if .Values.logging.elasticsearch.ingress.className }}
+  ingressClassName: {{ .Values.logging.elasticsearch.ingress.className | quote }}
+  {{- end }}
+{{- if .Values.logging.elasticsearch.ingress.tls }}
+  tls:
+  {{- if .ingressPath }}
+  {{- range  .Values.logging.elasticsearch.ingress.tls }}
+  - hosts:
+    {{- range  .hosts }}
+      - {{ . }}
+    {{- end }}
+    secretName: {{ .secretName }}
+  {{- end }}
+{{- else }}
+{{ toYaml .Values.logging.elasticsearch.ingress.tls | indent 4 }}
+  {{- end }}
+{{- end}}
+  rules:
+  {{- range .Values.logging.elasticsearch.ingress.hosts }}
+    {{- if $ingressPath }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: {{ $ingressPath }}
+        pathType: {{ $pathtype }}
+        backend:
+          service:
+            name: {{ $fullName }}
+            port:
+              number: {{ $httpPort }}
+  {{- else }}
+  - host: {{ .host }}
+    http:
+      paths:
+      {{- range .paths }}
+      - path: {{ .path }}
+        pathType: {{ $pathtype }}
+        backend:
+          service:
+            name: {{ $fullName }}
+            port:
+              number: {{ .servicePort | default $httpPort }}
+      {{- end }}
+  {{- end }}
+ {{- end }}
+ {{- end }}

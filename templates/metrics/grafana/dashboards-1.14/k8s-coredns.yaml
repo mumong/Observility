@@ -1,0 +1,52 @@
+{{- /*
+Generated from 'k8s-coredns' from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/03cb9b9319c2057728570875561fe331f7ee61c3/manifests/grafana-dashboardDefinitions.yaml
+Do not change in-place! In order to change this file first read following link:
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+*/ -}}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.metric.extra.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled (or .Values.metric.grafana.enabled .Values.metric.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.metric.grafana.defaultDashboardsEnabled .Values.metric.others.coreDns.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "k8s-coredns" | trunc 63 | trimSuffix "-" }}
+  annotations:
+{{ toYaml .Values.metric.grafana.sidecar.dashboards.annotations | indent 4 }}
+  labels:
+    {{- if $.Values.metric.grafana.sidecar.dashboards.label }}
+    {{ $.Values.metric.grafana.sidecar.dashboards.label }}: {{ ternary $.Values.metric.grafana.sidecar.dashboards.labelValue "1" (not (empty $.Values.metric.grafana.sidecar.dashboards.labelValue)) | quote }}
+    {{- end }}
+    app: {{ template "kube-prometheus-stack.name" $ }}-grafana
+{{ include "kube-prometheus-stack.labels" $ | indent 4 }}
+data:
+  k8s-coredns.json: |-
+    {{`{"editable":`}}{{ .Values.metric.grafana.defaultDashboardsEditable }}{{`,"links":[{"asDropdown":true,"includeVars":true,"keepTime":true,"tags":["kubernetes-mixin"],"targetBlank":false,"title":"Kubernetes","type":"dashboards"}],"panels":[{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[{"options":{"0":{"color":"green","index":0,"text":"0"}},"type":"value"},{"options":{"from":1,"result":{"color":"red","index":1},"to":9999999},"type":"range"}],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"red","value":1}]},"unit":"none"},"overrides":[]},"gridPos":{"h":7,"w":8,"x":0,"y":0},"id":1,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"auto"},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"sum(up{job=\"kube-dns\", cluster=\"$cluster\"})/count(up{job=\"kube-dns\", cluster=\"$cluster\"})","legendFormat":"","range":true},{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"sum(up{job=\"kube-dns\", cluster=\"$cluster\"})","legendFormat":"Up","range":true},{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"count(up{job=\"kube-dns\", cluster=\"$cluster\"})","legendFormat":"Total","range":true}],"title":"Up","type":"stat"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[{"options":{"match":"null","result":{"text":"N/A"}},"type":"special"},{"options":{"from":0,"result":{"color":"green","index":0},"to":0.01},"type":"range"},{"options":{"from":0.01,"result":{"color":"red","index":1},"to":1000000000000000000},"type":"range"}],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"red","value":0.01}]},"unit":"s"},"overrides":[]},"gridPos":{"h":7,"w":16,"x":8,"y":0},"id":2,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"histogram_quantile(0.99, sum(rate(coredns_dns_request_duration_seconds_bucket{job=\"kube-dns\", cluster=\"$cluster\"}[$__rate_interval])) by (server, zone, le))","legendFormat":"{{server}} {{zone}}","range":true}],"title":"P99 Latency","type":"timeseries"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"custom":{"fillOpacity":100},"unit":"reqps"}},"gridPos":{"h":7,"w":24,"x":0,"y":7},"id":3,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"sum(rate(coredns_dns_request_count_total{job=\"kube-dns\", cluster=\"$cluster\"}[$__rate_interval])) by (server, zone)","legendFormat":"{{server}} {{zone}}","range":true}],"title":"Request Rate","type":"timeseries"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"custom":{"fillOpacity":100},"unit":"reqps"}},"gridPos":{"h":7,"w":24,"x":0,"y":14},"id":4,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"sum(rate(coredns_dns_response_rcode_count_total{job=\"kube-dns\", cluster=\"$cluster\"}[$__rate_interval])) by (server, zone, rcode)","legendFormat":"{{server}} {{zone}} {{rcode}}","range":true}],"title":"Response Rate","type":"timeseries"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"custom":{"fillOpacity":100},"unit":"short"}},"gridPos":{"h":7,"w":8,"x":0,"y":21},"id":5,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"increase(process_cpu_seconds_total{job=\"kube-dns\", cluster=\"$cluster\"}[$__interval])","legendFormat":"{{instance}}","range":true}],"title":"CPU","type":"timeseries"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"custom":{"fillOpacity":100},"unit":"bytes"}},"gridPos":{"h":7,"w":8,"x":8,"y":21},"id":6,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"process_resident_memory_bytes{job=\"kube-dns\", cluster=\"$cluster\"}","legendFormat":"{{instance}}","range":true}],"title":"Memory","type":"timeseries"},{"datasource":{"type":"datasource","uid":"-- Mixed --"},"fieldConfig":{"defaults":{"custom":{"fillOpacity":100},"unit":"short"}},"gridPos":{"h":7,"w":8,"x":16,"y":21},"id":7,"interval":"`}}{{ .Values.metric.grafana.defaultDashboardsInterval }}{{`","options":{"legend":{"asTable":true,"placement":"right","showLegend":true},"tooltip":{"mode":"single"}},"pluginVersion":"v11.4.0","targets":[{"datasource":{"type":"prometheus","uid":"${datasource}"},"expr":"go_goroutines{job=\"kube-dns\", cluster=\"$cluster\"}","legendFormat":"{{instance}}","range":true}],"title":"Goroutines","type":"timeseries"}],"refresh":"10s","schemaVersion":39,"tags":["kubernetes-mixin"],"templating":{"list":[{"current":{"selected":true,"text":"default","value":"default"},"hide":0,"label":"Data source","name":"datasource","query":"prometheus","regex":"","type":"datasource"},{"datasource":{"type":"prometheus","uid":"${datasource}"},"hide":`}}{{ if .Values.metric.grafana.sidecar.dashboards.multicluster.global.enabled }}0{{ else }}2{{ end }}{{`,"label":"cluster","name":"cluster","query":"label_values(up{job=\"kube-dns\"}, cluster)","refresh":2,"sort":1,"type":"query","allValue":".*"}]},"time":{"from":"now-1h","to":"now"},"timezone": "`}}{{ .Values.metric.grafana.defaultDashboardsTimezone }}{{`","title":"Kubernetes / System / CoreDNS","uid":"d77f2ade7768e9f96f7e3c7e8d3d9f80"}`}}
+{{- end }}
+---
+{{- if and .Values.metric.enabled .Values.metric.grafana.operator.dashboardsConfigMapRefEnabled (or .Values.metric.grafana.enabled .Values.metric.grafana.forceDeployDashboards) (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.metric.grafana.defaultDashboardsEnabled .Values.metric.others.coreDns.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "k8s-coredns" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack-grafana.namespace" . }}
+  {{ with .Values.metric.grafana.operator.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{ end }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" $ }}-grafana
+spec:
+  allowCrossNamespaceImport: true
+  resyncPeriod: {{ .Values.metric.grafana.operator.resyncPeriod | quote | default "10m" }}
+  folder: {{ .Values.metric.grafana.operator.folder | quote }}
+  instanceSelector:
+    matchLabels:
+    {{- if .Values.metric.grafana.operator.matchLabels }}
+      {{- toYaml .Values.metric.grafana.operator.matchLabels | nindent 6 }}
+    {{- else }}
+      {{- fail "grafana.operator.matchLabels must be specified when grafana.operator.dashboardsConfigMapRefEnabled is true" }}
+    {{- end }}
+  configMapRef:
+    name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) "k8s-coredns" | trunc 63 | trimSuffix "-" }}
+    key: k8s-coredns.json
+{{- end }}

@@ -1,0 +1,206 @@
+{{- if .Values.metric.others.thanosRuler.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ThanosRuler
+metadata:
+  name: {{ template "kube-prometheus-stack.thanosRuler.crname" . }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ include "kube-prometheus-stack.thanosRuler.name" . }}
+{{- include "kube-prometheus-stack.labels" . | indent 4 -}}
+{{- if .Values.metric.others.thanosRuler.annotations }}
+  annotations:
+{{ toYaml .Values.metric.others.thanosRuler.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.image }}
+  {{- $registry := .Values.metric.extra.global.imageRegistry | default .Values.metric.others.thanosRuler.thanosRulerSpec.image.registry -}}
+  {{- if and .Values.metric.others.thanosRuler.thanosRulerSpec.image.tag .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}
+  image: "{{ $registry }}/{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.tag }}@sha256:{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}"
+  {{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}
+  image: "{{ $registry }}/{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.repository }}@sha256:{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}"
+  {{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.image.tag }}
+  image: "{{ $registry }}/{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.repository }}:{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.tag }}"
+  {{- else }}
+  image: "{{ $registry }}/{{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.repository }}"
+  {{- end }}
+  {{- if .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}
+  sha: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.image.sha }}
+  {{- end }}
+{{- end }}
+  replicas: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.replicas }}
+  listenLocal: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.listenLocal }}
+  {{- if .Values.metric.others.thanosRuler.thanosRulerSpec.serviceName }}
+  serviceName: {{ tpl .Values.metric.others.thanosRuler.thanosRulerSpec.serviceName . }}
+  {{- end }}
+  serviceAccountName: {{ template "kube-prometheus-stack.thanosRuler.serviceAccountName" . }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.externalPrefix }}
+  externalPrefix: "{{ tpl .Values.metric.others.thanosRuler.thanosRulerSpec.externalPrefix . }}"
+{{- else if and .Values.metric.others.thanosRuler.ingress.enabled .Values.metric.others.thanosRuler.ingress.hosts }}
+  externalPrefix: "http://{{ tpl (index .Values.metric.others.thanosRuler.ingress.hosts 0) . }}{{ .Values.metric.others.thanosRuler.thanosRulerSpec.routePrefix }}"
+{{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.externalPrefixNilUsesHelmValues }}
+  externalPrefix: "http://{{ template "kube-prometheus-stack.thanosRuler.name" . }}.{{ template "kube-prometheus-stack.namespace" . }}:{{ .Values.metric.others.thanosRuler.service.port }}"
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.additionalArgs }}
+  additionalArgs:
+{{ tpl (toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.additionalArgs) $ | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.nodeSelector }}
+  nodeSelector:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.nodeSelector | indent 4 }}
+{{- end }}
+  paused: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.paused }}
+  logFormat: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.logFormat | quote  }}
+  logLevel:  {{ .Values.metric.others.thanosRuler.thanosRulerSpec.logLevel | quote  }}
+  retention: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.retention | quote  }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.evaluationInterval }}
+  evaluationInterval: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.evaluationInterval }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.ruleNamespaceSelector }}
+  ruleNamespaceSelector:
+{{ tpl (toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.ruleNamespaceSelector | indent 4) . }}
+{{ else }}
+  ruleNamespaceSelector: {}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.ruleSelector }}
+  ruleSelector:
+{{ tpl (toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.ruleSelector | indent 4) .}}
+{{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.ruleSelectorNilUsesHelmValues }}
+  ruleSelector:
+    matchLabels:
+      release: {{ $.Release.Name | quote }}
+{{ else }}
+  ruleSelector: {}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.alertQueryUrl }}
+  alertQueryUrl: "{{ .Values.metric.others.thanosRuler.thanosRulerSpec.alertQueryUrl }}"
+{{- end}}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersUrl }}
+  alertmanagersUrl:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersUrl | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersConfig.existingSecret }}
+  alertmanagersConfig:
+    key: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersConfig.existingSecret.key }}"
+    name: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersConfig.existingSecret.name }}"
+{{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.alertmanagersConfig.secret }}
+  alertmanagersConfig:
+    key: alertmanager-configs.yaml
+    name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.queryEndpoints }}
+  queryEndpoints:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.queryEndpoints | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.queryConfig.existingSecret }}
+  queryConfig:
+    key: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.queryConfig.existingSecret.key }}"
+    name: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.queryConfig.existingSecret.name }}"
+{{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.queryConfig.secret }}
+  queryConfig:
+    key: query-configs.yaml
+    name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.resources }}
+  resources:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.resources | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.routePrefix }}
+  routePrefix: "{{ .Values.metric.others.thanosRuler.thanosRulerSpec.routePrefix }}"
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.securityContext }}
+  securityContext:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.securityContext | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.storage }}
+  storage:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.storage | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.objectStorageConfig.existingSecret }}
+  objectStorageConfig:
+    key: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.objectStorageConfig.existingSecret.key }}"
+    name: "{{.Values.metric.others.thanosRuler.thanosRulerSpec.objectStorageConfig.existingSecret.name }}"
+{{- else if .Values.metric.others.thanosRuler.thanosRulerSpec.objectStorageConfig.secret }}
+  objectStorageConfig:
+    key: object-storage-configs.yaml
+    name: {{ template "kube-prometheus-stack.thanosRuler.name" . }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.labels }}
+  labels:
+{{ tpl (toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.labels) $ | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.podMetadata }}
+  podMetadata:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.podMetadata | indent 4 }}
+{{- end }}
+{{- if or .Values.metric.others.thanosRuler.thanosRulerSpec.podAntiAffinity .Values.metric.others.thanosRuler.thanosRulerSpec.affinity }}
+  affinity:
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.affinity }}
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.affinity | indent 4 }}
+{{- end }}
+{{- if eq .Values.metric.others.thanosRuler.thanosRulerSpec.podAntiAffinity "hard" }}
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - topologyKey: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.podAntiAffinityTopologyKey }}
+        labelSelector:
+          matchExpressions:
+            - {key: app.kubernetes.io/name, operator: In, values: [thanos-ruler]}
+            - {key: thanos-ruler, operator: In, values: [{{ template "kube-prometheus-stack.thanosRuler.crname" . }}]}
+{{- else if eq .Values.metric.others.thanosRuler.thanosRulerSpec.podAntiAffinity "soft" }}
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          topologyKey: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.podAntiAffinityTopologyKey }}
+          labelSelector:
+            matchExpressions:
+              - {key: app.kubernetes.io/name, operator: In, values: [thanos-ruler]}
+              - {key: thanos-ruler, operator: In, values: [{{ template "kube-prometheus-stack.thanosRuler.crname" . }}]}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.tolerations }}
+  tolerations:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.tolerations | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.topologySpreadConstraints }}
+  topologySpreadConstraints:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.topologySpreadConstraints | indent 4 }}
+{{- end }}
+{{- if .Values.metric.extra.global.imagePullSecrets }}
+  imagePullSecrets:
+{{ toYaml .Values.metric.extra.global.imagePullSecrets | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.containers }}
+  containers:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.containers | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.initContainers }}
+  initContainers:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.initContainers | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.priorityClassName }}
+  priorityClassName: {{.Values.metric.others.thanosRuler.thanosRulerSpec.priorityClassName }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.volumes }}
+  volumes:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.volumes | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.volumeMounts }}
+  volumeMounts:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.volumeMounts | indent 4 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.alertDropLabels }}
+  alertDropLabels:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.alertDropLabels | indent 4 }}
+{{- end }}
+  portName: {{ .Values.metric.others.thanosRuler.thanosRulerSpec.portName }}
+{{- with .Values.metric.others.thanosRuler.thanosRulerSpec.additionalConfig }}
+  {{- tpl (toYaml .) $ | nindent 2 }}
+{{- end }}
+{{- if .Values.metric.others.thanosRuler.thanosRulerSpec.web }}
+  web:
+{{ toYaml .Values.metric.others.thanosRuler.thanosRulerSpec.web | indent 4 }}
+{{- end }}
+{{- with .Values.metric.others.thanosRuler.thanosRulerSpec.additionalConfigString }}
+  {{- tpl . $ | nindent 2 }}
+{{- end }}
+{{- end }}

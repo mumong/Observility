@@ -1,0 +1,25 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pre-install-{{ include "kibana.uname" . }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+  # annotations:
+  #   "helm.sh/hook": pre-install,pre-upgrade
+  #   "helm.sh/hook-delete-policy": hook-succeeded
+  #   {{- if .Values.logging.kibana.annotations }}
+  #   {{- range $key, $value := .Values.logging.kibana.annotations }}
+  #   {{ $key }}: {{ $value | quote }}
+  #   {{- end }}
+  #   {{- end }}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - create
+      - delete
+{{- end }}

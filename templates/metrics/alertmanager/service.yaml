@@ -1,0 +1,72 @@
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.metric.extra.kubeTargetVersionOverride }}
+{{- if and .Values.metric.enabled .Values.metric.alertmanager.enabled .Values.metric.alertmanager.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-alertmanager
+  namespace: {{ template "kube-prometheus-stack-alertmanager.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-alertmanager
+    self-monitor: {{ .Values.metric.alertmanager.serviceMonitor.selfMonitor | quote }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.metric.alertmanager.service.labels }}
+{{ toYaml .Values.metric.alertmanager.service.labels | indent 4 }}
+{{- end }}
+{{- if .Values.metric.alertmanager.service.annotations }}
+  annotations:
+{{ toYaml .Values.metric.alertmanager.service.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.metric.alertmanager.service.clusterIP }}
+  clusterIP: {{ .Values.metric.alertmanager.service.clusterIP }}
+{{- end }}
+{{- if .Values.metric.alertmanager.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.metric.alertmanager.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if .Values.metric.alertmanager.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.metric.alertmanager.service.loadBalancerIP }}
+{{- end }}
+{{- if .Values.metric.alertmanager.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range $cidr := .Values.metric.alertmanager.service.loadBalancerSourceRanges }}
+    - {{ $cidr }}
+  {{- end }}
+{{- end }}
+{{- if ne .Values.metric.alertmanager.service.type "ClusterIP" }}
+  externalTrafficPolicy: {{ .Values.metric.alertmanager.service.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  - name: {{ .Values.metric.alertmanager.alertmanagerSpec.portName }}
+  {{- if eq .Values.metric.alertmanager.service.type "NodePort" }}
+    nodePort: {{ .Values.metric.alertmanager.service.nodePort }}
+  {{- end }}
+    port: {{ .Values.metric.alertmanager.service.port }}
+    targetPort: {{ .Values.metric.alertmanager.service.targetPort }}
+    protocol: TCP
+  - name: reloader-web
+    {{- if semverCompare ">=1.20.0-0" $kubeTargetVersion }}
+    appProtocol: http
+    {{- end }}
+    port: 8080
+    targetPort: reloader-web
+{{- if .Values.metric.alertmanager.service.additionalPorts }}
+{{ toYaml .Values.metric.alertmanager.service.additionalPorts | indent 2 }}
+{{- end }}
+  selector:
+    app.kubernetes.io/name: alertmanager
+    alertmanager: {{ template "kube-prometheus-stack.alertmanager.crname" . }}
+{{- if .Values.metric.alertmanager.service.sessionAffinity }}
+  sessionAffinity: {{ .Values.metric.alertmanager.service.sessionAffinity }}
+{{- end }}
+{{- if eq .Values.metric.alertmanager.service.sessionAffinity "ClientIP" }}
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: {{ .Values.metric.alertmanager.service.sessionAffinityConfig.clientIP.timeoutSeconds }}
+{{- end }}
+  type: "{{ .Values.metric.alertmanager.service.type }}"
+{{- if .Values.metric.alertmanager.service.ipDualStack.enabled }}
+  ipFamilies: {{ toYaml .Values.metric.alertmanager.service.ipDualStack.ipFamilies | nindent 4 }}
+  ipFamilyPolicy: {{ .Values.metric.alertmanager.service.ipDualStack.ipFamilyPolicy }}
+{{- end }}
+{{- end }}

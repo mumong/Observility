@@ -1,0 +1,199 @@
+{{- if and .Values.logging.enabled .Values.logging.kibana.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "kibana.uname" . }}
+  labels: {{ include "kibana.labels" . | nindent 4 }}
+  {{- if .Values.logging.kibana.annotations }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "10"
+    {{- range $key, $value := .Values.logging.kibana.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.logging.kibana.replicas }}
+  strategy:
+{{ toYaml .Values.logging.kibana.updateStrategy | indent 4 }}
+  selector:
+    matchLabels:
+      app: {{ include "kibana.uname" . }}
+      release: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "kibana.uname" . }}
+        release: {{ .Release.Name | quote }}
+        {{- range $key, $value := .Values.logging.kibana.labels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+      annotations:
+        {{- range $key, $value := .Values.logging.kibana.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- if .Values.logging.kibana.kibanaConfig }}
+        configchecksum: {{ include (print .Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
+        {{- end }}
+    spec:
+      automountServiceAccountToken: {{ .Values.logging.kibana.automountToken }}
+{{- if .Values.logging.kibana.priorityClassName }}
+      priorityClassName: {{ .Values.logging.kibana.priorityClassName }}
+{{- end }}
+      securityContext:
+{{ toYaml .Values.logging.kibana.podSecurityContext | indent 8 }}
+      {{- if .Values.logging.kibana.serviceAccount }}
+      serviceAccount: {{ .Values.logging.kibana.serviceAccount }}
+      {{- end }}
+      {{- if .Values.logging.kibana.hostAliases }}
+      hostAliases: {{ toYaml .Values.logging.kibana.hostAliases | nindent 6 }}
+      {{- end }}
+      volumes:
+        - name: kibana-tokens
+          emptyDir: {}
+        - name: elasticsearch-certs
+          secret:
+            secretName: {{ include "kibana.elasticsearch.certSecret" . }}
+        {{- if .Values.logging.kibana.kibanaConfig }}
+        - name: kibanaconfig
+          configMap:
+            name: {{ include "kibana.uname" . }}-config
+        {{- end }}
+        {{- range .Values.logging.kibana.secretMounts }}
+        - name: {{ .name }}
+          secret:
+            secretName: {{ .secretName }}
+        {{- end }}
+        {{- if .Values.logging.kibana.extraVolumes }}
+{{ toYaml .Values.logging.kibana.extraVolumes | indent 8 }}
+        {{- end }}
+    {{- with .Values.logging.kibana.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.logging.kibana.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- with .Values.logging.kibana.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+    {{- if .Values.logging.kibana.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.logging.kibana.imagePullSecrets | indent 8 }}
+    {{- end }}
+      initContainers:
+      {{- if .Values.logging.kibana.extraInitContainers }}
+      # Currently some extra blocks accept strings
+      # to continue with backwards compatibility this is being kept
+      # whilst also allowing for yaml to be specified too.
+      {{- if eq "string" (printf "%T" .Values.logging.kibana.extraInitContainers) }}
+{{ tpl .Values.logging.kibana.extraInitContainers . | indent 6 }}
+      {{- else }}
+{{ toYaml .Values.logging.kibana.extraInitContainers | indent 6 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: kibana
+        securityContext:
+{{ toYaml .Values.logging.kibana.securityContext | indent 10 }}
+        image: "{{ .Values.logging.kibana.image }}:{{ .Values.logging.kibana.imageTag }}"
+        imagePullPolicy: "{{ .Values.logging.kibana.imagePullPolicy }}"
+        env:
+          {{- if .Values.logging.kibana.elasticsearchURL }}
+          - name: ELASTICSEARCH_URL
+            value: "{{ .Values.logging.kibana.elasticsearchURL }}"
+          {{- else }}
+          - name: ELASTICSEARCH_HOSTS
+            value: "{{ include "kibana.elasticsearch.host" . }}"
+          {{- end }}
+          - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
+            value: "{{ include "kibana.home_dir" . }}/config/certs/{{ include "kibana.elasticsearch.caFile" . }}"
+          - name: SERVER_HOST
+            value: "{{ .Values.logging.kibana.serverHost }}"
+          - name: ELASTICSEARCH_SERVICEACCOUNTTOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "kibana.uname" . }}-es-token
+                key: token
+                optional: false
+{{- if .Values.logging.kibana.extraEnvs }}
+{{ toYaml .Values.logging.kibana.extraEnvs | indent 10 }}
+{{- end }}
+{{- if .Values.logging.kibana.envFrom }}
+        envFrom:
+{{ toYaml .Values.logging.kibana.envFrom | indent 10 }}
+{{- end }}
+        readinessProbe:
+{{ toYaml .Values.logging.kibana.readinessProbe | indent 10 }}
+          exec:
+            command:
+              - bash
+              - -c
+              - |
+                #!/usr/bin/env bash -e
+
+                # Disable nss cache to avoid filling dentry cache when calling curl
+                # This is required with Kibana Docker using nss < 3.52
+                export NSS_SDB_USE_CACHE=no
+
+                http () {
+                    local path="${1}"
+                    set -- -XGET -s --fail -L
+
+                    if [ -n "${ELASTICSEARCH_USERNAME}" ] && [ -n "${ELASTICSEARCH_PASSWORD}" ]; then
+                      set -- "$@" -u "${ELASTICSEARCH_USERNAME}:${ELASTICSEARCH_PASSWORD}"
+                    fi
+
+                    STATUS=$(curl --output /dev/null --write-out "%{http_code}" -k "$@" "{{ .Values.logging.kibana.protocol }}://localhost:{{ .Values.logging.kibana.httpPort }}${path}")
+                    if [[ "${STATUS}" -eq 200 ]]; then
+                      exit 0
+                    fi
+
+                    echo "Error: Got HTTP code ${STATUS} but expected a 200"
+                    exit 1
+                }
+
+                http "{{ .Values.logging.kibana.healthCheckPath }}"
+        ports:
+        - containerPort: {{ .Values.logging.kibana.httpPort }}
+{{- if .Values.logging.kibana.lifecycle }}
+        lifecycle:
+{{ toYaml .Values.logging.kibana.lifecycle | indent 10 }}
+{{- end }}
+        resources:
+{{ toYaml .Values.logging.kibana.resources | indent 10 }}
+        volumeMounts:
+          - name: elasticsearch-certs
+            mountPath: {{ include "kibana.home_dir" . }}/config/certs
+            readOnly: true
+          - name: kibana-tokens
+            mountPath: {{ include "kibana.home_dir" . }}/config/tokens
+            readOnly: true
+          {{- range .Values.logging.kibana.secretMounts }}
+          - name: {{ .name }}
+            mountPath: {{ .path }}
+            {{- if .subPath }}
+            subPath: {{ .subPath }}
+            {{- end }}
+          {{- end }}
+          {{- range $path, $config := .Values.logging.kibana.kibanaConfig }}
+          - name: kibanaconfig
+            mountPath: {{ include "kibana.home_dir" . }}/config/{{ $path }}
+            subPath: {{ $path }}
+          {{- end -}}
+        {{- if .Values.logging.kibana.extraVolumeMounts }}
+{{ toYaml .Values.logging.kibana.extraVolumeMounts | indent 10 }}
+        {{- end }}
+      {{- if .Values.logging.kibana.extraContainers }}
+      # Currently some extra blocks accept strings
+      # to continue with backwards compatibility this is being kept
+      # whilst also allowing for yaml to be specified too.
+      {{- if eq "string" (printf "%T" .Values.logging.kibana.extraContainers) }}
+{{ tpl .Values.logging.kibana.extraContainers . | indent 6 }}
+      {{- else }}
+{{ toYaml .Values.logging.kibana.extraContainers | indent 6 }}
+      {{- end }}
+      {{- end }}
+{{- end }}

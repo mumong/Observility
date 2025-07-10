@@ -1,0 +1,45 @@
+{{- if and .Values.metric.enabled .Values.metric.prometheus.thanosService.enabled .Values.metric.prometheus.thanosServiceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-sidecar
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}-thanos-sidecar
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- with .Values.metric.prometheus.thanosServiceMonitor.additionalLabels }}
+{{- toYaml . | nindent 4 }}
+{{- end }}
+spec:
+  {{- include "servicemonitor.scrapeLimits" .Values.metric.prometheus.thanosServiceMonitor | nindent 2 }}
+  selector:
+    matchLabels:
+      app: {{ template "kube-prometheus-stack.name" . }}-thanos-discovery
+      release: {{ $.Release.Name | quote }}
+  namespaceSelector:
+    matchNames:
+      - {{ printf "%s" (include "kube-prometheus-stack.namespace" .) | quote }}
+  endpoints:
+  - port: {{ .Values.metric.prometheus.thanosService.httpPortName }}
+    {{- if .Values.metric.prometheus.thanosServiceMonitor.interval }}
+    interval: {{ .Values.metric.prometheus.thanosServiceMonitor.interval }}
+    {{- end }}
+    {{- if .Values.metric.prometheus.thanosServiceMonitor.scheme }}
+    scheme: {{ .Values.metric.prometheus.thanosServiceMonitor.scheme }}
+    {{- end }}
+    {{- if .Values.metric.prometheus.thanosServiceMonitor.tlsConfig }}
+    tlsConfig: {{ toYaml .Values.metric.prometheus.thanosServiceMonitor.tlsConfig | nindent 6 }}
+    {{- end }}
+    {{- if .Values.metric.prometheus.thanosServiceMonitor.bearerTokenFile }}
+    bearerTokenFile: {{ .Values.metric.prometheus.thanosServiceMonitor.bearerTokenFile }}
+    {{- end }}
+    path: "/metrics"
+{{- if .Values.metric.prometheus.thanosServiceMonitor.metricRelabelings }}
+    metricRelabelings:
+{{ tpl (toYaml .Values.metric.prometheus.thanosServiceMonitor.metricRelabelings | indent 6) . }}
+{{- end }}
+{{- if .Values.metric.prometheus.thanosServiceMonitor.relabelings }}
+    relabelings:
+{{ toYaml .Values.metric.prometheus.thanosServiceMonitor.relabelings | indent 6 }}
+{{- end }}
+{{- end }}

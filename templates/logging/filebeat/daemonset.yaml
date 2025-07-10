@@ -1,0 +1,256 @@
+{{- if and .Values.logging.enabled .Values.logging.filebeat.enabled .Values.logging.filebeat.daemonset.enabled }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ template "filebeat.fullname" . }}
+  labels:
+    app: "{{ template "filebeat.fullname" . }}"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service | quote }}
+    release: {{ .Release.Name | quote }}
+    {{- if .Values.logging.filebeat.daemonset.labels }}
+    {{- range $key, $value := .Values.logging.filebeat.daemonset.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- else }}
+    {{- range $key, $value := .Values.logging.filebeat.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+    {{- end }}
+  {{- if .Values.logging.filebeat.daemonset.annotations }}
+  annotations:
+    {{- range $key, $value := .Values.logging.filebeat.daemonset.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: "{{ template "filebeat.fullname" . }}"
+      release: {{ .Release.Name | quote }}
+  updateStrategy:
+    {{- if eq .Values.logging.filebeat.updateStrategy "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.logging.filebeat.daemonset.maxUnavailable }}
+    {{- end }}
+    type: {{ .Values.logging.filebeat.updateStrategy }}
+  template:
+    metadata:
+      annotations:
+        {{- range $key, $value := .Values.logging.filebeat.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{/* This forces a restart if the configmap has changed */}}
+        {{- if or .Values.logging.filebeat.filebeatConfig .Values.logging.filebeat.daemonset.filebeatConfig }}
+        {{- $configData := dict }}
+        {{- if .Values.logging.filebeat.filebeatConfig }}
+        {{- $_ := set $configData "filebeatConfig" .Values.logging.filebeat.filebeatConfig }}
+        {{- else }}
+        {{- $_ := set $configData "daemonsetConfig" .Values.logging.filebeat.daemonset.filebeatConfig }}
+        {{- end }}
+        configChecksum: {{ $configData | toYaml | sha256sum | trunc 63 }}
+        {{- end }}
+      name: "{{ template "filebeat.fullname" . }}"
+      labels:
+        app: "{{ template "filebeat.fullname" . }}"
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        heritage: {{ .Release.Service | quote }}
+        release: {{ .Release.Name | quote }}
+        {{- if .Values.logging.filebeat.daemonset.labels }}
+        {{- range $key, $value := .Values.logging.filebeat.daemonset.labels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- else }}
+        {{- range $key, $value := .Values.logging.filebeat.labels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+    spec:
+      tolerations: {{ toYaml ( .Values.logging.filebeat.tolerations | default .Values.logging.filebeat.daemonset.tolerations ) | nindent 8 }}
+      nodeSelector: {{ toYaml ( .Values.logging.filebeat.nodeSelector | default .Values.logging.filebeat.daemonset.nodeSelector ) | nindent 8 }}
+      {{- if .Values.logging.filebeat.priorityClassName }}
+      priorityClassName: {{ .Values.logging.filebeat.priorityClassName  }}
+      {{- end }}
+      affinity: {{ toYaml ( .Values.logging.filebeat.affinity | default .Values.logging.filebeat.daemonset.affinity ) | nindent 8 }}
+      serviceAccountName: {{ template "filebeat.serviceAccount" . }}
+      terminationGracePeriodSeconds: {{ .Values.logging.filebeat.terminationGracePeriod }}
+      {{- if .Values.logging.filebeat.daemonset.hostNetworking }}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      {{- if .Values.logging.filebeat.dnsConfig }}
+      dnsConfig: {{ toYaml .Values.logging.filebeat.dnsConfig | nindent 8 }}
+      {{- end }}
+      {{- if .Values.logging.filebeat.hostAliases | default .Values.logging.filebeat.daemonset.hostAliases }}
+      hostAliases: {{ toYaml ( .Values.logging.filebeat.hostAliases | default .Values.logging.filebeat.daemonset.hostAliases ) | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: elasticsearch-certs
+        secret:
+          secretName: {{ include "filebeat.elasticsearch.certSecret" . }}
+      {{- if .Values.logging.filebeat.filebeatConfig }}
+      - name: filebeat-config
+        configMap:
+          defaultMode: 0600
+          name: {{ template "filebeat.fullname" . }}-config
+      {{- else if .Values.logging.filebeat.daemonset.filebeatConfig }}
+      - name: filebeat-config
+        configMap:
+          defaultMode: 0600
+          name: {{ template "filebeat.fullname" . }}-daemonset-config
+      {{- end }}
+      {{- if .Values.logging.filebeat.secretMounts | default .Values.logging.filebeat.daemonset.secretMounts }}
+      {{- range $mount := .Values.logging.filebeat.secretMounts | default .Values.logging.filebeat.daemonset.secretMounts }}
+      - name: {{ $mount.name | default "secret-mount" }}-volume
+        secret:
+          secretName: {{ $mount.secretName | default (include "filebeat.elasticsearch.certSecret" $) }}
+      {{- end }}
+      {{- end }}
+      - name: data
+        hostPath:
+          path: {{ .Values.logging.filebeat.hostPathRoot }}/{{ template "filebeat.fullname" . }}-{{ .Release.Namespace }}-data
+          type: DirectoryOrCreate
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varrundockersock
+        hostPath:
+          path: /var/run/docker.sock
+      {{- if .Values.logging.filebeat.extraVolumes | default .Values.logging.filebeat.daemonset.extraVolumes }}
+{{ toYaml ( .Values.logging.filebeat.extraVolumes | default .Values.logging.filebeat.daemonset.extraVolumes )  | indent 6 }}
+      {{- end }}
+      {{- if .Values.logging.filebeat.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.logging.filebeat.imagePullSecrets | indent 8 }}
+      {{- end }}
+      {{- if .Values.logging.filebeat.extraInitContainers }}
+      initContainers:
+      # All the other beats accept a string here while
+      # filebeat accepts a valid yaml array. We're keeping
+      # this as a backwards compatible change, while adding
+      # also a way to pass a string as other templates to
+      # make these implementations consistent.
+      # https://github.com/elastic/helm-charts/issues/490
+      {{- if eq "string" (printf "%T" .Values.logging.filebeat.extraInitContainers) }}
+{{ tpl .Values.logging.filebeat.extraInitContainers . | indent 8 }}
+      {{- else }}
+{{ toYaml .Values.logging.filebeat.extraInitContainers | indent 8 }}
+      {{- end }}
+      {{- end }}
+      containers:
+      - name: "filebeat"
+        image: "{{ .Values.logging.filebeat.image }}:{{ .Values.logging.filebeat.imageTag }}"
+        imagePullPolicy: "{{ .Values.logging.filebeat.imagePullPolicy }}"
+        args:
+        - "-e"
+        - "-E"
+        - "http.enabled=true"
+        livenessProbe:
+{{ toYaml .Values.logging.filebeat.livenessProbe | indent 10 }}
+        readinessProbe:
+{{ toYaml .Values.logging.filebeat.readinessProbe | indent 10 }}
+        resources:
+{{ toYaml ( .Values.logging.filebeat.resources | default .Values.logging.filebeat.daemonset.resources )  | indent 10 }}
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: ELASTICSEARCH_HOSTS
+          value: {{ include "filebeat.elasticsearch.host" . | quote }}
+        {{- /* 只有在extraEnvs中没有定义这些变量时才添加默认值 */}}
+        {{- $hasUsername := false }}
+        {{- $hasPassword := false }}
+        {{- range $env := .Values.logging.filebeat.extraEnvs | default .Values.logging.filebeat.daemonset.extraEnvs }}
+        {{- if eq $env.name "ELASTICSEARCH_USERNAME" }}
+        {{- $hasUsername = true }}
+        {{- end }}
+        {{- if eq $env.name "ELASTICSEARCH_PASSWORD" }}
+        {{- $hasPassword = true }}
+        {{- end }}
+        {{- end }}
+        {{- if not $hasUsername }}
+        - name: "ELASTICSEARCH_USERNAME"
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "filebeat.elasticsearch.credSecret" . }}
+              key: username
+        {{- end }}
+        {{- if not $hasPassword }}
+        - name: "ELASTICSEARCH_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "filebeat.elasticsearch.credSecret" . }}
+              key: password
+        {{- end }}
+        {{- if .Values.logging.filebeat.extraEnvs | default .Values.logging.filebeat.daemonset.extraEnvs }}
+        {{- range $env := .Values.logging.filebeat.extraEnvs | default .Values.logging.filebeat.daemonset.extraEnvs }}
+        - name: {{ $env.name | quote }}
+          {{- if $env.value }}
+          value: {{ $env.value | quote }}
+          {{- else if $env.valueFrom }}
+          valueFrom:
+            {{- if $env.valueFrom.secretKeyRef }}
+            secretKeyRef:
+              name: {{ $env.valueFrom.secretKeyRef.name | default (include "filebeat.elasticsearch.credSecret" $) }}
+              key: {{ $env.valueFrom.secretKeyRef.key }}
+            {{- else }}
+            {{- toYaml $env.valueFrom | nindent 14 }}
+            {{- end }}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        envFrom: {{ toYaml ( .Values.logging.filebeat.envFrom | default .Values.logging.filebeat.daemonset.envFrom ) | nindent 10 }}
+        securityContext: {{ toYaml ( .Values.logging.filebeat.podSecurityContext | default .Values.logging.filebeat.daemonset.securityContext ) | nindent 10 }}
+        volumeMounts:
+        - name: elasticsearch-certs
+          mountPath: /usr/share/filebeat/certs
+          readOnly: true
+        {{- range $path, $config := .Values.logging.filebeat.filebeatConfig }}
+        - name: filebeat-config
+          mountPath: /usr/share/filebeat/{{ $path }}
+          readOnly: true
+          subPath: {{ $path }}
+        {{- else }}
+        {{- range $path, $config := .Values.logging.filebeat.daemonset.filebeatConfig }}
+        - name: filebeat-config
+          mountPath: /usr/share/filebeat/{{ $path }}
+          readOnly: true
+          subPath: {{ $path }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.logging.filebeat.secretMounts | default .Values.logging.filebeat.daemonset.secretMounts }}
+        {{- range $mount := .Values.logging.filebeat.secretMounts | default .Values.logging.filebeat.daemonset.secretMounts }}
+        - name: {{ $mount.name | default "secret-mount" }}-volume
+          mountPath: {{ $mount.path }}
+          readOnly: true
+        {{- end }}
+        {{- end }}
+        - name: data
+          mountPath: /usr/share/filebeat/data
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+        # Necessary when using autodiscovery; avoid mounting it otherwise
+        # See: https://www.elastic.co/guide/en/beats/filebeat/master/configuration-autodiscover.html
+        - name: varrundockersock
+          mountPath: /var/run/docker.sock
+          readOnly: true
+        {{- if .Values.logging.filebeat.extraVolumeMounts | default .Values.logging.filebeat.daemonset.extraVolumeMounts }}
+{{ toYaml (.Values.logging.filebeat.extraVolumeMounts | default .Values.logging.filebeat.daemonset.extraVolumeMounts ) | indent 8 }}
+        {{- end }}
+      {{- if and .Values.logging.filebeat.extraContainers (ne .Values.logging.filebeat.extraContainers "") }}
+{{ tpl .Values.logging.filebeat.extraContainers . | indent 6 }}
+      {{- end }}
+{{- end }}
