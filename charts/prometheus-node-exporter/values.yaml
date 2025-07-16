@@ -134,7 +134,7 @@ service:
   ## (IntOrString)
   targetPort: 9100
   ## Name of the service port. Sets the port name of the main container (NE) as well.
-  portName: metrics
+  portName: http-metrics
   ## Port number for service type NodePort
   nodePort: null
 
@@ -144,7 +144,8 @@ service:
   ## Additional annotations and labels for the service
   annotations:
     prometheus.io/scrape: "true"
-  labels: {}
+  labels:
+    jobLabel: node-exporter
 
   ## Dual stack settings for the service
   ## https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services
@@ -174,11 +175,11 @@ env: {}
 
 prometheus:
   monitor:
-    enabled: false
+    enabled: true
     additionalLabels: {}
     namespace: ""
 
-    jobLabel: ""
+    jobLabel: jobLabel
 
     # List of pod labels to add to node exporter metrics
     # https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api-reference/api.md#servicemonitor
@@ -209,7 +210,7 @@ prometheus:
     relabelings: []
     metricRelabelings: []
     interval: ""
-    scrapeTimeout: 10s
+    scrapeTimeout: ""
     ## prometheus.monitor.apiVersion ApiVersion for the serviceMonitor Resource(defaults to "monitoring.coreos.com/v1")
     apiVersion: ""
 
@@ -424,7 +425,8 @@ podAnnotations:
   cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
 
 # Extra labels to add to node exporter pods (can be templated)
-podLabels: {}
+podLabels:
+  jobLabel: node-exporter
 
 ## Extra labels to attach to all resources (can be templated)
 commonLabels: {}
@@ -433,7 +435,7 @@ commonLabels: {}
 daemonsetAnnotations: {}
 
 ## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
-releaseLabel: false
+releaseLabel: true
 
 # Custom DNS configuration to be added to prometheus-node-exporter pods
 dnsConfig: {}
@@ -457,8 +459,8 @@ nodeSelector:
 terminationGracePeriodSeconds: null
 
 tolerations:
-  - effect: NoSchedule
-    operator: Exists
+  - operator: "Exists"
+    effect: "NoSchedule"
 
 # Enable or disable container termination message settings
 # https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/
@@ -475,9 +477,9 @@ terminationMessageParams:
 
 ## Additional container arguments
 ##
-extraArgs: []
-#   - --collector.diskstats.ignored-devices=^(ram|loop|fd|(h|s|v)d[a-z]|nvme\\d+n\\d+p)\\d+$
-#   - --collector.textfile.directory=/run/prometheus
+extraArgs:
+  - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+  - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
 
 ## Additional mounts from the host to node-exporter container
 ##

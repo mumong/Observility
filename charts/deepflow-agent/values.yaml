@@ -19,7 +19,7 @@ daemonsetWatchDisabled: false  # Whether to disable the watch for Agent configur
 
 image:
   repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: v7.0
 
@@ -36,6 +36,8 @@ podSecurityContext: {}
   # fsGroup: 2000
 hostNetwork: "false"
 dnsPolicy: "ClusterFirst"
+
+nodeIPInjection: true
 
 ## Mount the netns hostPath directory read-only 
 netns:
@@ -99,14 +101,9 @@ service:
   type: ClusterIP
 
 deepflowServerNodeIPS:
-- '"%DEEPFLOW_SERVER_SERVICE%"'
-deepflowK8sClusterID:
+- '#{RELEASE_NAME}-deepflow-server.#{RELEASE_NAMESPACE}.svc.cluster.local'
+kubernetesClusterId: 
 agentGroupID:
-controllerPort:
-clusterNAME:
-teamId:
-## This command takes effect when agent-group-config external_agent_http_proxy_enabled=1 is configured using deepflow-ctl
-## Set the port to the agent-group-config port
 externalAgentHttpProxyPort: 38086
 
 deepflowAgentConfig: 
@@ -125,6 +122,8 @@ deepflowAgentConfig:
       {{- nindent 4 "- " }}{{ $.Release.Name }}-deepflow-server.{{ $.Release.Namespace }}.svc.cluster.local
       {{- end -}}
       {{- else -}}
+      {{- $ip := regexReplaceAll "#\\{RELEASE_NAME\\}" $ip $.Release.Name }}
+      {{- $ip := regexReplaceAll "#\\{RELEASE_NAMESPACE\\}" $ip $.Release.Namespace }}
       {{- nindent 4 "- " }}{{ $ip }}
       {{- end -}}
     {{- end -}}
@@ -136,6 +135,8 @@ deepflowAgentConfig:
       {{- nindent 4 "- " }}{{ $.Release.Name }}-deepflow-server.{{ $.Release.Namespace }}.svc.cluster.local
       {{- end -}}
       {{- else -}}
+      {{- $ip := regexReplaceAll "#\\{RELEASE_NAME\\}" $ip $.Release.Name }}
+      {{- $ip := regexReplaceAll "#\\{RELEASE_NAMESPACE\\}" $ip $.Release.Namespace }}
       {{- nindent 4 "- " }}{{ $ip }}
       {{- end -}}
     {{- end -}}

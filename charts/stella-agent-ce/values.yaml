@@ -5,6 +5,15 @@ global:
   podAffinityTermLabelSelector: []
   nodeAffinityLabelSelector: []
   nodeAffinityTermLabelSelector: []
+  timezone: "Asia/Shanghai"
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  password:
+    mysql: deepflow
+  externalMySQL:
+    enabled: false
+    ip: 10.1.2.3
+    port: 3306
 
 replicas: 1
 
@@ -16,8 +25,8 @@ fullnameOverride: ""
 podAnnotations: {}
 
 image:
-  repository: deepflowce/deepflowio-stella-agent-ce
-  pullPolicy: Always
+  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflowio-stella-agent-ce
+  pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
 
@@ -91,9 +100,9 @@ configmap:
     log_level: "info"
     instance_path: "/root/df-llm-agent"
     mysql:
-      host: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.ip}}{{ else }}{{ $.Release.Name }}-mysql{{end}}"
-      port: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.port}}{{ else }}30130{{end}}"
-      user_password: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.password}}{{ else }}{{ .Values.global.password.mysql }}{{end}}"
+      host: "deepflow-mysql"
+      port: "30130"
+      user_password: "deepflow"
       database: "deepflow_llm"
 
 resources: {}

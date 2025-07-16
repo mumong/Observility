@@ -1,0 +1,23 @@
+{{- if and .Values.metric.enabled .Values.metric.kepler.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "kepler.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kepler.labels" . | nindent 4 }}
+  {{- with .Values.metric.kepler.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.metric.kepler.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.metric.kepler.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "kepler.selectorLabels" . | nindent 4 }}
+{{- end }}

@@ -1,5 +1,5 @@
 # Default values for kube-state-metrics.
-prometheusScrape: true
+prometheusScrape: false
 image:
   registry: registry.k8s.io
   repository: kube-state-metrics/kube-state-metrics
@@ -78,7 +78,7 @@ customLabels: {}
 selectorOverride: {}
 
 ## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
-releaseLabel: false
+releaseLabel: true
 
 hostNetwork: false
 
@@ -169,7 +169,7 @@ env: []
 
 prometheus:
   monitor:
-    enabled: false
+    enabled: true
     annotations: {}
     additionalLabels: {}
     namespace: ""
@@ -205,7 +205,7 @@ prometheus:
       proxyUrl: ""
       ## Whether to enable HTTP2 for servicemonitor
       enableHttp2: false
-      honorLabels: false
+      honorLabels: true
       metricRelabelings: []
       relabelings: []
       scheme: ""
@@ -357,7 +357,9 @@ affinity: {}
 
 ## Tolerations for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-tolerations: []
+tolerations:
+  - operator: "Exists"
+    effect: "NoSchedule"
 
 ## Topology spread constraints for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
@@ -394,7 +396,7 @@ metricDenylist: []
 # Comma-separated list of additional Kubernetes label keys that will be used in the resource's
 # labels metric. By default the metric contains only name and namespace labels.
 # To include additional labels, provide a list of resource names in their plural form and Kubernetes
-# label keys you would like to allow for them (Example: '=namespaces=[k8s-label-1,k8s-label-n,...],pods=[app],...)'.
+# label keys you would like to allow for them (Example: '=namespaces=[k8s-label-1,k8s-label-n,...],pods=[app],...)').
 # A single '*' can be provided per resource instead to allow any labels, but that has
 # severe performance implications (Example: '=pods=[*]').
 metricLabelsAllowlist: []
@@ -403,7 +405,7 @@ metricLabelsAllowlist: []
 # Comma-separated list of Kubernetes annotations keys that will be used in the resource'
 # labels metric. By default the metric contains only name and namespace labels.
 # To include additional annotations provide a list of resource names in their plural form and Kubernetes
-# annotation keys you would like to allow for them (Example: '=namespaces=[kubernetes.io/team,...],pods=[kubernetes.io/team],...)'.
+# annotation keys you would like to allow for them (Example: '=namespaces=[kubernetes.io/team,...],pods=[kubernetes.io/team],...)').
 # A single '*' can be provided per resource instead to allow any annotations, but that has
 # severe performance implications (Example: '=pods=[*]').
 metricAnnotationsAllowList: []

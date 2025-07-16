@@ -16,10 +16,10 @@ hostNetwork: "false"
 dnsPolicy: "ClusterFirst"
 podManagementPolicy: "OrderedReady"
 image:
-  repository: clickhouse/clickhouse-server
+  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/clickhouse-server
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: 22.8.6.71
+  tag: "23.10"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -160,6 +160,15 @@ podAntiAffinityLabelSelector:
     topologyKey: "kubernetes.io/hostname"
 podAntiAffinityTermLabelSelector: []
 podAffinityLabelSelector: []
-podAffinityTermLabelSelector: []
+podAffinityTermLabelSelector:
+  - topologyKey: kubernetes.io/hostname
+    weight: 10
+    labelSelector:
+    - key: app
+      operator: In
+      values: deepflow
+    - key: component
+      operator: In
+      values: deepflow-server
 nodeAffinityLabelSelector: []
 nodeAffinityTermLabelSelector: []

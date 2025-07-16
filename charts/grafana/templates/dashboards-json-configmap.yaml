@@ -21,7 +21,8 @@ data:
       {{- $value.json | nindent 6 }}
     {{- end }}
     {{- if hasKey $value "file" }}
-    {{- toYaml ( $files.Get $value.file ) | nindent 4}}
+    |-
+      {{- $files.Get $value.file | nindent 6 }}
     {{- end }}
 {{- end }}
 {{- end }}

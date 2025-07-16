@@ -8,11 +8,17 @@ global:
   podAffinityTermLabelSelector: []
   nodeAffinityLabelSelector: []
   nodeAffinityTermLabelSelector: []
+  storageClass: ""
+  timezone: "Asia/Shanghai"
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  password: 
+    mysql: deepflow
 
 replicas: 1
 
 image:
-  repository: mysql
+  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/mysql
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: 8.0.39
@@ -53,14 +59,15 @@ storageConfig:
   ## persistentVolumeClaim/hostPath
   type: persistentVolumeClaim
   hostPath: /opt/deepflow-mysql
+  hostPathChownContainerEnabled: true
   persistence:
     storageClass: ""
     annotations:
       "helm.sh/resource-policy": keep
     # existingClaim: your-claim-pvc-name
     accessMode: ReadWriteOnce
-    size: 50Gi 
-    
+    size: 50Gi
+
 externalMySQL:
   enabled: false
   hostIP: 192.168.1.1

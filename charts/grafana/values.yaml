@@ -230,7 +230,7 @@ gossipPortName: gossip
 ##
 service:
   enabled: true
-  type: ClusterIP
+  type: NodePort
   # Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
   ipFamilyPolicy: ""
   # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
@@ -244,20 +244,21 @@ service:
   ## Service annotations. Can be templated.
   annotations: {}
   labels: {}
-  portName: service
+  portName: http-web
   # Adds the appProtocol field to the service. This allows to work with istio protocol selection. Ex: "http" or "tcp"
   appProtocol: ""
   sessionAffinity: ""
+  nodePort: 30300
 
 serviceMonitor:
   ## If true, a ServiceMonitor CR is created for a prometheus operator
   ## https://github.com/coreos/prometheus-operator
   ##
-  enabled: false
+  enabled: true
   path: /metrics
   #  namespace: monitoring  (defaults to use the namespace this chart is deployed to)
   labels: {}
-  interval: 30s
+  interval: ""
   scheme: http
   tlsConfig: {}
   scrapeTimeout: 30s
@@ -292,8 +293,7 @@ ingress:
   # pathType is only for k8s >= 1.1=
   pathType: Prefix
 
-  hosts:
-    - chart-example.local
+  hosts: []
   ## Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
   extraPaths: []
   # - path: /*
@@ -489,7 +489,7 @@ initChownData:
 
 # Administrator credentials when not using an existing secret (see below)
 adminUser: admin
-# adminPassword: strongpassword
+adminPassword: "changeme"
 
 # Use an existing secret for the admin user.
 admin:
@@ -797,7 +797,7 @@ notifiers: {}
 ##
 ## `path` must be /var/lib/grafana/dashboards/<provider_name>
 ##
-dashboardProviders: {}
+# dashboardProviders: {}
 #  dashboardproviders.yaml:
 #    apiVersion: 1
 #    providers:
@@ -809,6 +809,18 @@ dashboardProviders: {}
 #      editable: true
 #      options:
 #        path: /var/lib/grafana/dashboards/default
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDelete: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/default
 
 ## Configure how curl fetches remote dashboards. The beginning dash is required.
 ## NOTE: This sets the default short flags for all dashboards, but these
@@ -828,7 +840,15 @@ defaultCurlOptions: "-skf"
 ##
 ## dashboards per provider, use provider name as key.
 ##
-dashboards: {}
+dashboards:
+  default:
+    dashboard-v2:
+      file: dashboards/custom-dashboard.json
+      datasources:
+        - name: DS_PROMETHEUS
+          value: Prometheus
+        - name: DS_PROMETHEUS-1
+          value: Prometheus
   # default:
   #   some-dashboard:
   #     json: |
@@ -857,6 +877,9 @@ dashboards: {}
   #     url: https://example.com/repository/test-azure.json
   #     basic: ''
   #     acceptHeader: '*/*'
+
+defaultDashboardsEnabled: true
+defaultDashboardsEditable: true
 
 ## Reference to external ConfigMap per provider. Use provider name as key and ConfigMap name as value.
 ## A provider dashboards must be defined either by external ConfigMaps or in values.yaml, not in both.
@@ -887,6 +910,9 @@ grafana.ini:
     url: https://grafana.net
   server:
     domain: "{{ if (and .Values.ingress.enabled .Values.ingress.hosts) }}{{ tpl (.Values.ingress.hosts | first) . }}{{ else }}''{{ end }}"
+  dashboards:
+    versions_to_keep: 20
+    min_refresh_interval: 5s
 ## grafana Authentication can be enabled with the following values on grafana.ini
  # server:
       # The full public facing url you use in browser, used for redirects and emails
@@ -1065,7 +1091,7 @@ sidecar:
     # Sets the size limit of the alert sidecar emptyDir volume
     sizeLimit: ""
   dashboards:
-    enabled: false
+    enabled: true
     # Additional environment variables for the dashboards sidecar
     env: {}
     ## "valueFrom" environment variable references that will be added to deployment pods. Name is templated.
@@ -1087,7 +1113,7 @@ sidecar:
     # label that the configmaps with dashboards are marked with (can be templated)
     label: grafana_dashboard
     # value of label that the configmaps with dashboards are set to (can be templated)
-    labelValue: ""
+    labelValue: "1"
     # Log level. Can be one of: DEBUG, INFO, WARN, ERROR, CRITICAL.
     # logLevel: INFO
     # folder in the pod that should hold the collected dashboards (unless `defaultFolderName` is set)
@@ -1097,7 +1123,7 @@ sidecar:
     # Namespaces list. If specified, the sidecar will search for config-maps/secrets inside these namespaces.
     # Otherwise the namespace in which the sidecar is running will be used.
     # It's also possible to specify ALL to search in all namespaces.
-    searchNamespace: null
+    searchNamespace: ALL
     # Method to use to detect ConfigMap changes. With WATCH the sidecar will do a WATCH requests, with SLEEP it will list all ConfigMaps, then sleep for 60 seconds.
     watchMethod: WATCH
     # search in configmap, secret or both
@@ -1161,7 +1187,7 @@ sidecar:
       # disableDelete to activate a import-only behaviour
       disableDelete: false
       # allow updating provisioned dashboards from the UI
-      allowUiUpdates: false
+      allowUiUpdates: true
       # allow Grafana to replicate dashboard structure from filesystem
       foldersFromFilesStructure: false
     # Additional dashboards sidecar volume mounts
@@ -1169,7 +1195,7 @@ sidecar:
     # Sets the size limit of the dashboard sidecar emptyDir volume
     sizeLimit: ""
   datasources:
-    enabled: false
+    enabled: true
     # Additional environment variables for the datasourcessidecar
     env: {}
     ## "valueFrom" environment variable references that will be added to deployment pods. Name is templated.
@@ -1190,7 +1216,7 @@ sidecar:
     # label that the configmaps with datasources are marked with (can be templated)
     label: grafana_datasource
     # value of label that the configmaps with datasources are set to (can be templated)
-    labelValue: ""
+    labelValue: "1"
     # Log level. Can be one of: DEBUG, INFO, WARN, ERROR, CRITICAL.
     # logLevel: INFO
     # If specified, the sidecar will search for datasource config-maps inside this namespace.
@@ -1585,7 +1611,6 @@ networkPolicy:
   ##
   egress:
     ## @param networkPolicy.egress.enabled When enabled, an egress network policy will be
-    ## created allowing grafana to connect to external data sources from kubernetes cluster.
     enabled: false
     ##
     ## @param networkPolicy.egress.blockDNSResolution When enabled, DNS resolution will be blocked

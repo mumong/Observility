@@ -1,19 +1,30 @@
 # Default values for byconity.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+# global:
+#   podAntiAffinityLabelSelector: []
+#   podAntiAffinityTermLabelSelector: []
+#   podAffinityLabelSelector: []
+#   podAffinityTermLabelSelector: []
+#   nodeAffinityLabelSelector: []
+#   nodeAffinityTermLabelSelector: []
+#   storageClass: ""
+#   timezone: "Asia/Shanghai"
+#   hostNetwork: false
+#   dnsPolicy: ClusterFirst
 
 nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: byconity/byconity
+  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/byconity
   tag: 1.0.0
   imagePullPolicy: IfNotPresent
 
 byconity:
   hdfs_address: hdfs://byconity-hdfs-namenodes:8020  #default hdfs
-  #  if “hdfs_ha_nameservice” is configured, the “hdfs_address” configuration will be ineffective
-  #  hdfs_ha_nameservice: hdfs_service  # after configuring “namespace”, you need to configure the address of the namespace in “hdfs3Config”
+  #  if "hdfs_ha_nameservice" is configured, the "hdfs_address" configuration will be ineffective
+  #  hdfs_ha_nameservice: hdfs_service  # after configuring "namespace", you need to configure the address of the namespace in "hdfs3Config"
   #  if you want to use your own fdb please add the following 2 configurations
   #  use_existing_fdb: true
   #  fdb_cluster_file: byconity_fdb:Is0hBgl6iICdHuspBmhAODmD5WISXKzI@192.168.224.150:4501,192.168.226.83:4501,192.168.228.152:4501
@@ -98,6 +109,7 @@ byconity:
     podAnnotations: {}
     resources: {}
     hostNetwork: false
+    dnsPolicy: ClusterFirst
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -127,7 +139,7 @@ byconity:
           resources:
             requests:
               storage: 500Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
       log:
         pvcSpec:
           accessModes:
@@ -135,14 +147,14 @@ byconity:
           resources:
             requests:
               storage: 50Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
     configOverwrite:
       logger:
         level: trace
       disk_cache_strategies:
         simple:
           lru_max_size: 429496729600 # 400Gi
-      # timezone: Etc/UTC
+      timezone: "Asia/Shanghai"
 
   tso:
     replicas: 1
@@ -150,6 +162,7 @@ byconity:
     podAnnotations: {}
     resources: {}
     hostNetwork: false
+    dnsPolicy: ClusterFirst
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -181,7 +194,7 @@ byconity:
           resources:
             requests:
               storage: 500Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
       log:
         pvcSpec:
           accessModes:
@@ -189,7 +202,7 @@ byconity:
           resources:
             requests:
               storage: 50Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
 
 
   daemonManager:
@@ -214,6 +227,7 @@ byconity:
       timeoutSeconds: 10
     resources: {}
     hostNetwork: false
+    dnsPolicy: ClusterFirst
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -243,6 +257,7 @@ byconity:
       successThreshold: 1
       timeoutSeconds: 10
     hostNetwork: false
+    dnsPolicy: ClusterFirst
     nodeSelector: {}
     tolerations: []
     affinity: {}
@@ -285,7 +300,7 @@ byconity:
           resources:
             requests:
               storage: 500Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
       log:
         pvcSpec:
           accessModes:
@@ -293,14 +308,14 @@ byconity:
           resources:
             requests:
               storage: 50Gi
-          storageClassName: your-storage-class
+          storageClassName: ""
     configOverwrite:
       logger:
         level: trace
       disk_cache_strategies:
         simple:
           lru_max_size: 429496729600 # 400Gi
-      # timezone: Etc/UTC
+      timezone: "Asia/Shanghai"
 
   virtualWarehouses:
     - <<: *defaultWorker
@@ -396,7 +411,7 @@ hdfs:
     dataVolumes:
       count: 1
       pvcTemplateSpec:
-        storageClassName: your-storage-class
+        storageClassName: ""
         accessModes:
           - ReadWriteOnce
         resources:
@@ -415,7 +430,7 @@ hdfs:
     dataVolumes:
       count: 1
       pvcTemplateSpec:
-        storageClassName: your-storage-class
+        storageClassName: ""
         accessModes:
           - ReadWriteOnce
         resources:
