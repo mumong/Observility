@@ -7,6 +7,7 @@ appVersion: "1.0.0"
 
 dependencies:
   - name: grafana
+    alias: grafana
     version: 9.2.7
     repository: "file://charts/grafana"
   - name: kube-state-metrics

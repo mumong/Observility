@@ -48,6 +48,7 @@ metric:
         enabled: true
         defaultDatasourceEnabled: true
         isDefaultDatasource: true
+        # isDefaultDatasource: false
         name: Prometheus
         uid: prometheus
         annotations: {}
@@ -83,6 +84,17 @@ metric:
       tlsConfig: {}
       scrapeTimeout: 30s
       relabelings: []
+    # env:
+    #   TZ: "Asia/Shanghai"
+    #   DEEPFLOW_REQUEST_URL: 'http://{{ include "deepflow.fullname" . }}-server:20416'
+    #   DEEPFLOW_TRACEURL: 'http://{{ include "deepflow.fullname" . }}-app:20418'
+    #   MYSQL_URL: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.ip}}{{ else }}{{ $.Release.Name }}-mysql{{end}}:{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.port}}{{ else }}30130{{end}}"
+    #   MYSQL_USER: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.username}}{{ else }}root{{end}}"
+    #   MYSQL_PASSWORD:  "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.password}}{{ else }}{{ .Values.global.password.mysql }}{{end}}"
+    #   CLICKHOUSE_SERVER: "{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Release.Name }}-external-clickhouse{{ else }}{{ $.Release.Name }}-clickhouse{{end}}"
+    #   CLICKHOUSE_USER: "{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Values.global.externalClickHouse.username }}{{ else }}default{{end}}"
+    #   CLICKHOUSE_PASSWORD: '{{ if eq $.Values.global.storageEngine "clickhouse" }}{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Values.global.externalClickHouse.password }}{{ else }}{{ .Values.global.password.clickhouse }}{{end}}{{ else }}{{ .Values.global.password.byconity }}{{ end }}'
+    #   DEEPFLOW_AI_URL: 'http://{{ include "deepflow.fullname" . }}-stella-agent-ce:20831'
   alertmanager:
     enabled: true
     namespaceOverride: ""

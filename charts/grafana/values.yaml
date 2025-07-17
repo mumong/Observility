@@ -1,20 +1,20 @@
-global:
-  # -- Overrides the Docker registry globally for all images
-  imageRegistry: null
+# global:
+#   # -- Overrides the Docker registry globally for all images
+#   imageRegistry: null
 
-  # To help compatibility with other charts which use global.imagePullSecrets.
-  # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
-  # Can be templated.
-  # global:
-  #   imagePullSecrets:
-  #   - name: pullSecret1
-  #   - name: pullSecret2
-  # or
-  # global:
-  #   imagePullSecrets:
-  #   - pullSecret1
-  #   - pullSecret2
-  imagePullSecrets: []
+#   # To help compatibility with other charts which use global.imagePullSecrets.
+#   # Allow either an array of {name: pullSecret} maps (k8s-style), or an array of strings (more common helm-style).
+#   # Can be templated.
+#   # global:
+#   #   imagePullSecrets:
+#   #   - name: pullSecret1
+#   #   - name: pullSecret2
+#   # or
+#   # global:
+#   #   imagePullSecrets:
+#   #   - pullSecret1
+#   #   - pullSecret2
+#   imagePullSecrets: []
 
 rbac:
   create: true
@@ -173,9 +173,20 @@ extraConfigmapMounts: []
   #   optional: false
 
 
-extraEmptyDirMounts: []
+# extraEmptyDirMounts: []
   # - name: provisioning-notifiers
   #   mountPath: /etc/grafana/provisioning/notifiers
+## ======修改适配deepflow======
+extraEmptyDirMounts: 
+  - name: custom-plugins
+    mountPath: /var/lib/grafana/plugins
+  # - name: deepflow-dashboards
+  # - name: sc-dashboard-volume
+    # mountPath: /tmp/dashboards-deepflow
+  - name: grafana-dashboards-config
+    mountPath: /etc/grafana/provisioning/dashboards
+  # - name: grafana-datasources-config
+  #   mountPath: /etc/grafana/provisioning/datasources
 
 
 # Apply extra labels to common labels.
@@ -382,7 +393,85 @@ topologySpreadConstraints: []
 ## Additional init containers (evaluated as template)
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
 ##
-extraInitContainers: []
+
+##extraInitContainers: []
+### ======修改适配deepflow======
+extraInitContainers:
+  - name: init-custom-plugins
+    image: "{{ .Values.global.image.repository }}/deepflowio-init-grafana:v7.0"
+    imagePullPolicy: "{{ tpl .Values.global.image.pullPolicy . }}"
+    volumeMounts:
+    - name: custom-plugins
+      mountPath: /var/lib/grafana/plugins
+
+
+  - name: init-grafana-ds-dh
+    image: "{{ .Values.global.image.repository }}/deepflowio-init-grafana-ds-dh:latest"
+    imagePullPolicy: "{{ tpl .Values.global.image.pullPolicy . }}"
+    volumeMounts:
+    # - name: deepflow-dashboards
+    - name: sc-dashboard-volume
+      mountPath: /tmp/dashboards
+    - name: grafana-dashboards-config
+      mountPath: /etc/grafana/provisioning/dashboards
+    # - name: grafana-datasources-config
+    - name: sc-datasources-volume
+      mountPath: /etc/grafana/provisioning/datasources
+
+  - name: fix-deepflow-datasource # 新增的容器，专门负责修改文件
+    image: "alpine/git:latest" # 使用一个包含 sed 工具的轻量级镜像，例如 alpine/git, busybox 等
+    imagePullPolicy: 'IfNotPresent'
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        # 确保 deepflow-datasource.yaml 文件存在
+        FILE_PATH="/etc/grafana/provisioning/datasources/deepflow-datasource.yaml"
+        echo "Starting init container to fix Grafana datasource configuration..."
+
+        # 等待文件存在，增加健壮性
+        for i in $(seq 1 10); do
+          if [ -f "$FILE_PATH" ]; then
+            echo "$FILE_PATH found. Proceeding with modifications."
+            break
+          fi
+          echo "Waiting for $FILE_PATH to be created... (Attempt $i/10)"
+          sleep 2
+          if [ "$i" -eq 10 ]; then
+            echo "Error: $FILE_PATH not found after multiple attempts. Exiting."
+            exit 1
+          fi
+        done
+
+        # --- 修改 isDefault: true 为 isDefault: false ---
+        if grep -q "isDefault: true" "$FILE_PATH"; then
+          sed -i 's/isDefault: true/isDefault: false/' "$FILE_PATH"
+          echo "Successfully modified 'isDefault: true' to 'isDefault: false' in $FILE_PATH"
+        else
+          echo "'isDefault: true' not found or already modified in $FILE_PATH. Skipping this modification."
+        fi
+
+        # --- 修改 DeepFlow ClickHouse 的 UID ---
+        # 查找包含 "uid: DeepFlow ClickHouse" 的行，并将其修改为 "uid: DeepFlow-ClickHouse"
+        if grep -q "uid: DeepFlow ClickHouse" "$FILE_PATH"; then
+          sed -i 's/uid: DeepFlow ClickHouse/uid: DeepFlow-ClickHouse/' "$FILE_PATH"
+          echo "Successfully modified 'uid: DeepFlow ClickHouse' to 'uid: DeepFlow-ClickHouse' in $FILE_PATH"
+        else
+          echo "'uid: DeepFlow ClickHouse' not found or already modified in $FILE_PATH. Skipping this UID modification."
+        fi
+
+        # --- 新增：修改 DeepFlow MySQL 的 UID ---
+        # 查找包含 "uid: DeepFlow MySQL" 的行，并将其修改为 "uid: DeepFlow-MySQL"
+        if grep -q "uid: DeepFlow MySQL" "$FILE_PATH"; then
+          sed -i 's/uid: DeepFlow MySQL/uid: DeepFlow-MySQL/' "$FILE_PATH"
+          echo "Successfully modified 'uid: DeepFlow MySQL' to 'uid: DeepFlow-MySQL' in $FILE_PATH"
+        else
+          echo "'uid: DeepFlow MySQL' not found or already modified in $FILE_PATH. Skipping this UID modification."
+        fi
+
+        echo "Init container finished datasource configuration fixes."
+    volumeMounts:
+    - name: sc-datasources-volume # 挂载相同的卷，以便访问文件
+      mountPath: /etc/grafana/provisioning/datasources
 
 ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
 extraContainers: ""
@@ -535,8 +624,22 @@ admin:
 ## 6. uncomment the annotation section in the serviceAccount: above
 ## make sure to replace arn:aws:iam::123456789000:role/iam-role-name-here with your role arn
 
-env: {}
+# env: {}
+## ======修改适配deepflow======
+env:
+  TZ: "Asia/Shanghai"
+  DEEPFLOW_REQUEST_URL: 'http://{{ include "deepflow.fullname" . }}-server:20416'
+  DEEPFLOW_TRACEURL: 'http://{{ include "deepflow.fullname" . }}-app:20418'
+  MYSQL_URL: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.ip}}{{ else }}{{ $.Release.Name }}-mysql{{end}}:{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.port}}{{ else }}30130{{end}}"
+  MYSQL_USER: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.username}}{{ else }}root{{end}}"
+  MYSQL_PASSWORD:  "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.password}}{{ else }}{{ .Values.global.password.mysql }}{{end}}"
+  CLICKHOUSE_SERVER: "{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Release.Name }}-external-clickhouse{{ else }}{{ $.Release.Name }}-clickhouse{{end}}"
+  CLICKHOUSE_USER: "{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Values.global.externalClickHouse.username }}{{ else }}default{{end}}"
+  CLICKHOUSE_PASSWORD: '{{ if eq $.Values.global.storageEngine "clickhouse" }}{{ if $.Values.global.externalClickHouse.enabled }}{{ $.Values.global.externalClickHouse.password }}{{ else }}{{ .Values.global.password.clickhouse }}{{end}}{{ else }}{{ .Values.global.password.byconity }}{{ end }}'
+  DEEPFLOW_AI_URL: 'http://{{ include "deepflow.fullname" . }}-stella-agent-ce:20831'
 
+tracing:
+  fullnameOverride: ""
 ## "valueFrom" environment variable references that will be added to deployment pods. Name is templated.
 ## ref: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#envvarsource-v1-core
 ## Renders in container spec as:
@@ -913,6 +1016,85 @@ grafana.ini:
   dashboards:
     versions_to_keep: 20
     min_refresh_interval: 5s
+  database:
+    type: mysql
+    host: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.ip}}{{ else }}{{ $.Release.Name }}-mysql{{end}}:{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.port}}{{ else }}30130{{end}}"
+    name: grafana
+    user: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.username}}{{ else }}root{{end}}"
+    password: "{{ if $.Values.global.externalMySQL.enabled }}{{$.Values.global.externalMySQL.password}}{{ else }}{{ .Values.global.password.mysql }}{{end}}"
+  plugins:
+    allow_loading_unsigned_plugins: deepflow-querier-datasource,deepflow-apptracing-panel,deepflow-topo-panel,deepflowio-tracing-panel,deepflowio-deepflow-datasource,deepflowio-topo-panel
+
+assertNoLeakedSecrets: false
+
+global:
+  image:
+    ## ghcr Image repository address: ghcr.io/deepflowys/deepflow-ce
+    ## Dockerhub Image repository address: deepflowce
+    ## AliyunYun Image repository address: registry.cn-beijing.aliyuncs.com/deepflow-ce
+    repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce
+    pullPolicy: IfNotPresent
+    imagePullSecrets: []
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  password:
+    mysql: deepflow
+    #grafana: deepflow 
+    clickhouse:
+    byconity: 
+  podManagementPolicy: "OrderedReady"
+  replicas: 1  ## replicas for deepflow-server and clickhouse
+  podAntiAffinityLabelSelector: []
+  podAntiAffinityTermLabelSelector: []
+  podAffinityLabelSelector: []
+  podAffinityTermLabelSelector: []
+  nodeAffinityLabelSelector: []
+  nodeAffinityTermLabelSelector: []
+  timezone: "Asia/Shanghai"
+  nodePort: 
+    clickhouseTcpPort:
+    clickhouseHttpPort:
+    deepflowServerIngester: 30033
+    deepflowServerGrpc: 30035
+    # deepflowServerSslGrpc: 30135
+    deepflowServerhealthCheck: 30417
+  ntpServer: ntp.aliyun.com
+  ## Whether to enable allInone local storage, if enabled, the local /opt directory is used to store data by default, ignoring the node affinity check, and is not responsible for any data persistence
+  allInOneLocalStorage: false 
+  storageClass: ""
+  ## Select a storage engine. Currently, clickhouse and byconity are available
+  storageEngine: clickhouse  
+  externalClickHouse:
+    enabled: false  ## Enable external ClickHouse
+    type: ep
+
+    ## External ClickHouse clusterName,The default value is 'default', query method:  'select cluster,host_address,port from system.clusters;'
+    clusterName: default 
+
+    ## External ClickHouse storage policy name,The default value is 'default', query method: 'select policy_name from system.storage_policies;'
+    storagePolicy: default 
+    username: default ## External ClickHouse username
+    password: password ## External ClickHouse Password
+    
+    ## External ClickHouse IP address and port list, DeepFlow writes IP and port information to an svc endpoint, deepflow-server obtains ClickHouse's IP:Port through get&wath&list endpoint.
+    ## deepflow-server needs to access the real IP address of ClickHouse, the port is connected using tcp-port, usually 9000, and query IP:Port through 'select host_address,port from system.clusters;'.
+    hosts: []
+    # - ip: 10.1.2.3
+    #   port: 9000
+    # - ip: 10.1.2.4
+    #   port: 9000
+    # - ip: 10.1.2.5
+    #   port: 9000
+
+  externalMySQL:
+    enabled: false ## Enable external MySQL
+    ip: 10.1.2.3 ## External Mysql IP address, Need to allow deepflow-server and clickhouse access
+    port: 3306 ## External Mysql port
+    username:  ## External Mysql username
+    password:  ## External Mysql password
+
+
+
 ## grafana Authentication can be enabled with the following values on grafana.ini
  # server:
       # The full public facing url you use in browser, used for redirects and emails
@@ -1676,4 +1858,5 @@ extraObjects: []
 #
 # Alternatively, if you wish to allow secret values to be exposed in the rendered grafana.ini configmap,
 # you can disable this check by setting assertNoLeakedSecrets to false.
-assertNoLeakedSecrets: true
+# assertNoLeakedSecrets: true
+assertNoLeakedSecrets: false
