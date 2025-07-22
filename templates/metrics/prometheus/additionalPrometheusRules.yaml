@@ -1,22 +1,4 @@
-{{- if and .Values.metric.enabled .Values.metric.prometheus.additionalPrometheusRulesMap }}
-{{- range $prometheusRuleName, $prometheusRule := .Values.metric.prometheus.additionalPrometheusRulesMap }}
----
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" $) $prometheusRuleName | trunc 63 | trimSuffix "-" }}
-  namespace: {{ template "kube-prometheus-stack.namespace" $ }}
-  labels:
-    app: {{ template "kube-prometheus-stack.name" $ }}
-    {{- include "kube-prometheus-stack.labels" $ | nindent 4 }}
-    {{- if $prometheusRule.additionalLabels }}
-    {{- toYaml $prometheusRule.additionalLabels | nindent 4 }}
-    {{- end }}
-spec:
-  groups:
-    {{- toYaml $prometheusRule.groups | nindent 4 }}
-{{- end }}
-{{- else if and .Values.metric.enabled .Values.metric.prometheus.additionalPrometheusRules }}
+{{- if and .Values.metric.enabled .Values.metric.prometheus.additionalPrometheusRules }}
 {{- range .Values.metric.prometheus.additionalPrometheusRules }}
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -27,11 +9,11 @@ metadata:
   labels:
     app: {{ template "kube-prometheus-stack.name" $ }}
     {{- include "kube-prometheus-stack.labels" $ | nindent 4 }}
-    {{- if .additionalLabels }}
+    {{- if .additionalLabels }} 
     {{- toYaml .additionalLabels | nindent 4 }}
     {{- end }}
 spec:
   groups:
     {{- toYaml .groups | nindent 4 }}
-{{- end }}
-{{- end }}
+{{- end }} 
+{{- end }} 
