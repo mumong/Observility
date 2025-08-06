@@ -130,34 +130,48 @@ metric:
     stringConfig: |-
       global:
         resolve_timeout: 5m
-        smtp_smarthost: "smtp.example.com:465"
-        smtp_from: "alert@example.com"
-        smtp_auth_username: "alert@example.com"
-        smtp_auth_password: "password"
-        smtp_require_tls: false
-        smtp_hello: "example.com"
       route:
-        receiver: email
         group_by: ['alertname']
         group_wait: 10s
-        group_interval: 2m
-        repeat_interval: 10m
-        routes:
-          - matchers:
-              - severity="critical"
-            receiver: email
+        group_interval: 10s
+        repeat_interval: 1h
+        receiver: 'null'
       receivers:
-        - name: email
-          email_configs:
-            - to: "ops@example.com"
-              require_tls: false
-              smarthost: "smtp.example.com:465"
-              auth_username: "alert@example.com"
-              auth_password: "password"
-              from: "alert@example.com"
+        - name: 'null'
       templates:
         - '/etc/alertmanager/config/*.tmpl'
+    # stringConfig: |-
+    #   global:
+    #     resolve_timeout: 20m
+    #     smtp_smarthost: "smtp.example.com:465"
+    #     smtp_from: "alert@example.com"
+    #     smtp_auth_username: "alert@example.com"
+    #     smtp_auth_password: "password"
+    #     smtp_require_tls: false
+    #     smtp_hello: "example.com"
+    #   route:
+    #     receiver: email
+    #     group_by: ['alertname']
+    #     group_wait: 10s
+    #     group_interval: 2m
+    #     repeat_interval: 10m
+    #     routes:
+    #       - matchers:
+    #           - severity="critical"
+    #         receiver: email
+    #   receivers:
+    #     - name: email
+    #       email_configs:
+    #         - to: "ops@example.com"
+    #           require_tls: false
+    #           smarthost: "smtqqp.example.com:465"
+    #           auth_username: "alerqqt@example.com"
+    #           auth_password: "paqqssword"
+    #           from: "alert@example.com"
+    #   templates:
+    #     - '/etc/alertmanager/config/*.tmpl'
     tplConfig: true
+    # tplConfig: false
     templateFiles: {}
     ingress:
       enabled: false
@@ -218,7 +232,7 @@ metric:
       sessionAffinityConfig:
         clientIP:
           timeoutSeconds: 10800
-      type: ClusterIP
+      type: NodePort
     servicePerReplica:
       enabled: false
       annotations: {}
@@ -260,8 +274,12 @@ metric:
       automountServiceAccountToken: true
       configMaps: []
       web: {}
-      alertmanagerConfigSelector: {}
-      alertmanagerConfigNamespaceSelector: {}
+      alertmanagerConfigSelector: 
+        matchLabels:
+          release: "{{ .Release.Name }}"
+      alertmanagerConfigNamespaceSelector: 
+        matchNames:
+        - "{{ .Release.Namespace }}"
       alertmanagerConfiguration: {}
       alertmanagerConfigMatcherStrategy: {}
       additionalArgs: []
@@ -661,18 +679,30 @@ metric:
     additionalRulesForClusterRole: []
     additionalServiceMonitors: []
     additionalPodMonitors: []
+    # additionalPrometheusRules: []
     additionalPrometheusRules:
-      - name: custom-cpu-alert
+    #   - name: custom-cpu-alert
+    #     groups:
+    #       - name: custom.rules
+    #         rules:
+    #           - alert: HighCPUUsage
+    #             expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod) > 0.9
+    #             for: 5m
+    #             labels:
+    #               severity: critical
+    #             annotations:
+    #               summary: "Pod CPU usage > 9111####19%"
+      - name: network-rules
         groups:
-          - name: custom.rules
+          - name: test
             rules:
-              - alert: HighCPUUsage
-                expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod) > 0.9
+              - alert: this is a test
+                expr: sum(container_memory_working_set_bytes) by (pod) / sum(container_spec_memory_limit_bytes) by (pod) > 0.8
                 for: 5m
                 labels:
-                  severity: critical
+                  severity: warning
                 annotations:
-                  summary: "Pod CPU usage > 90%"
+                  summary: "thsi is a test%"
   prometheusOperator:
     enabled: true
     fullnameOverride: ""
