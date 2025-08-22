@@ -1,0 +1,17 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.customer.apiserver.rbac.bindingName | default "alert-api-manager-binding" }}
+  labels:
+    app: alert-api
+    release: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.customer.apiserver.serviceAccount.name | default "alert-api" }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.customer.apiserver.rbac.clusterRoleName | default "alert-api-manager" }}
+  apiGroup: rbac.authorization.k8s.io

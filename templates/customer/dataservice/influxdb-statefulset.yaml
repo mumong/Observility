@@ -1,0 +1,77 @@
+# InfluxDB StatefulSet
+{{- if .Values.customer.dataservice.influxdb2.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-influxdb2
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: influxdb2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "monitoring-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: influxdb2
+  serviceName: {{ include "monitoring-stack.fullname" . }}-influxdb2
+  template:
+    metadata:
+      labels:
+        {{- include "monitoring-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: influxdb2
+    spec:
+      serviceAccountName: {{ include "monitoring-stack.serviceAccountName" . }}
+      containers:
+        - name: influxdb2
+          image: influxdb:2.7.4-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8086
+              name: http
+          env:
+            - name: DOCKER_INFLUXDB_INIT_MODE
+              value: "setup"
+            - name: DOCKER_INFLUXDB_INIT_USERNAME
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.user | quote }}
+            - name: DOCKER_INFLUXDB_INIT_PASSWORD
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.password | quote }}
+            - name: DOCKER_INFLUXDB_INIT_ORG
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.organization | quote }}
+            - name: DOCKER_INFLUXDB_INIT_BUCKET
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.bucket | quote }}
+            - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.token | quote }}
+          resources:
+            limits:
+              cpu: {{ .Values.customer.dataservice.influxdb2.resources.limits.cpu | quote }}
+              memory: {{ .Values.customer.dataservice.influxdb2.resources.limits.memory | quote }}
+            requests:
+              cpu: {{ .Values.customer.dataservice.influxdb2.resources.requests.cpu | quote }}
+              memory: {{ .Values.customer.dataservice.influxdb2.resources.requests.memory | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/influxdb2
+      volumes:
+        - name: data
+          {{- if .Values.customer.dataservice.influxdb2.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "monitoring-stack.fullname" . }}-influxdb2
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      restartPolicy: Always
+  {{- if .Values.customer.dataservice.influxdb2.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "monitoring-stack.labels" . | nindent 10 }}
+          app.kubernetes.io/component: influxdb2
+      spec:
+        accessModes: [{{ .Values.customer.dataservice.influxdb2.persistence.accessMode | quote }}]
+        resources:
+          requests:
+            storage: {{ .Values.customer.dataservice.influxdb2.persistence.size | quote }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,81 @@
+# Service account for monitoring components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+  {{- with .Values.customer.dataservice.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+---
+
+{{- if .Values.customer.dataservice.rbac.create }}
+# RBAC roles for monitoring components
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+  {{- if .Values.customer.dataservice.global.xnetAgent.autoDetectCluster }}
+  - apiGroups: [""]
+    resources: ["configmaps", "pods", "pods/exec"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "monitoring-stack.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+
+---
+
+# ClusterRole for nodes access (required for cluster detection)
+{{- if .Values.customer.dataservice.global.xnetAgent.autoDetectCluster }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-nodes
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-nodes
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "monitoring-stack.fullname" . }}-nodes
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+    namespace: {{ .Release.Namespace }}
+{{- end }}

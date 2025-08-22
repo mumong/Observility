@@ -1,0 +1,52 @@
+{{- if .Values.customer.enabled -}}
+{{- if .Values.customer.apiserver.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: api-service
+spec:
+  selector:
+    app: api-server
+  type: NodePort
+  ports:
+  - name: algo-wizard
+    port: 8080
+    targetPort: 8080
+    nodePort: {{ .Values.customer.apiserver.nodePort }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: api-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-server
+  template:
+    metadata:
+      labels:
+        app: api-server
+    spec:
+      {{- if .Values.customer.apiserver.serviceAccount.name }}
+      serviceAccountName: {{ .Values.customer.apiserver.serviceAccount.name }}
+      {{- end }}
+      containers:
+      - name: api-server
+        image: xnet.registry.io:8443/apiserver/apiserver:v1.0
+        args: ["--release={{ .Release.Name }}","--namespace={{ .Release.Namespace }}"]
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+{{- end }}
+{{- end }}
+
+
+

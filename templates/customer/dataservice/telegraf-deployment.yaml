@@ -1,0 +1,66 @@
+# Telegraf Deployment
+{{- if .Values.customer.dataservice.telegraf.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-telegraf
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: telegraf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "monitoring-stack.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: telegraf
+  template:
+    metadata:
+      labels:
+        {{- include "monitoring-stack.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: telegraf
+    spec:
+      serviceAccountName: {{ include "monitoring-stack.serviceAccountName" . }}
+      containers:
+        - name: telegraf
+          image: docker.io/library/telegraf:1.32-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLUSTER_NAME
+              value: "{{ .Values.customer.dataservice.global.clusterName }}"
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "🚀 [Telegraf] Starting Telegraf..."
+              echo "🎯 [Telegraf] Using cluster name: $CLUSTER_NAME"
+              
+              # Create config with cluster name from values
+              sed "s/{{ .Values.customer.dataservice.global.clusterName }}/$CLUSTER_NAME/g" /etc/telegraf/telegraf.conf.template > /etc/telegraf/telegraf.conf
+              echo "📝 [Telegraf] Config generated with cluster name"
+              
+              /usr/bin/telegraf --config /etc/telegraf/telegraf.conf
+          ports:
+            - containerPort: 8125
+              name: statsd
+              protocol: UDP
+            - containerPort: 8125
+              name: statsd-tcp
+              protocol: TCP
+          resources:
+            limits:
+              cpu: {{ .Values.customer.dataservice.telegraf.resources.limits.cpu | quote }}
+              memory: {{ .Values.customer.dataservice.telegraf.resources.limits.memory | quote }}
+            requests:
+              cpu: {{ .Values.customer.dataservice.telegraf.resources.requests.cpu | quote }}
+              memory: {{ .Values.customer.dataservice.telegraf.resources.requests.memory | quote }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/telegraf/telegraf.conf.template
+              subPath: telegraf.conf
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "monitoring-stack.fullname" . }}-telegraf-config
+      restartPolicy: Always
+{{- end }}

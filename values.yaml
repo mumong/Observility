@@ -279,6 +279,7 @@ metric:
           release: "{{ .Release.Name }}"
       alertmanagerConfigNamespaceSelector: 
         matchNames:
+        # matchLabels:
         - "{{ .Release.Namespace }}"
       alertmanagerConfiguration: {}
       alertmanagerConfigMatcherStrategy: {}
@@ -549,7 +550,7 @@ metric:
       apiserverConfig: {}
       additionalArgs: []
       scrapeFailureLogFile: ""
-      scrapeInterval: ""
+      scrapeInterval: "5s"
       scrapeTimeout: ""
       scrapeClasses: []
       podTargetLabels: []
@@ -1946,7 +1947,7 @@ logging:
       type: NodePort
       loadBalancerIP: ""
       port: 5601
-      nodePort: ""
+      nodePort: "30223"
       labels: {}
       annotations: {}
       loadBalancerSourceRanges: []
@@ -2719,3 +2720,110 @@ tracing:
     enabled: false
   byconity:
     enabled: false
+
+customer:
+  enabled: true
+  apiserver:
+    enabled: true
+    nodePort: 31520
+    rbac:
+      create: true
+      clusterWide: true
+      clusterRoleName: "alert-api-manager"
+      bindingName: "alert-api-manager-binding"
+    serviceAccount:
+      name: "alert-api"
+  dataservice:
+    enabled: true
+    global:
+      clusterName: "my-cluster"
+      xnetAgent:
+        autoDetectCluster: true
+        fallbackClusterName: "default-cluster"
+        serviceName: "xnet-agent"
+        serviceNamespace: "xnet"
+        managementService:
+          name: "xnet-management"
+          port: 8000
+    debug:
+      enabled: true
+      keepJobAlive: true
+      verboseLogging: true
+    telegraf:
+      enabled: true
+      resources:
+        limits:
+          cpu: "2"
+          memory: "2Gi"
+        requests:
+          cpu: "1"
+          memory: "1Gi"
+      config:
+        global_tags:
+          cluster: "{{ .Values.customer.dataservice.global.clusterName }}"
+        outputs:
+          - influxdb_v2:
+              urls:
+                - "http://{{ .Values.customer.dataservice.global.xnetAgent.managementService.name }}.{{ .Values.customer.dataservice.global.xnetAgent.serviceNamespace }}.svc.cluster.local:{{ .Values.customer.dataservice.global.xnetAgent.managementService.port }}"
+              token: "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
+              bucket: "{{ .Values.customer.dataservice.influxdb2.adminUser.bucket }}"
+              organization: "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
+        inputs:
+          - statsd:
+              allowed_pending_messages: 10000
+              metric_separator: "_"
+              percentile_limit: 1000
+              percentiles:
+                - 50.0
+                - 95.0
+                - 99.0
+              service_address: ":8125"
+          - internal:
+              collect_memstats: false
+          - prometheus:
+              metric_version: 2
+              interval: "60s"
+              timeout: "100s"
+        processors:
+          - enum:
+              mapping:
+                field: "status"
+                dest: "status_code"
+                value_mappings:
+                  healthy: 1
+                  problem: 2
+                  critical: 3
+    influxdb2:
+      enabled: true
+      adminUser:
+        organization: "influxdata"
+        bucket: "xnet"
+        user: "admin"
+        password: "xnetadmin123"
+        token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
+      service:
+        type: NodePort
+        port: 8086
+        targetPort: 8086
+        nodePort: 31521
+      persistence:
+        enabled: true
+        accessMode: ReadWriteOnce
+        size: 50Gi
+      resources:
+        limits:
+          cpu: "6"
+          memory: "14Gi"
+        requests:
+          cpu: "4"
+          memory: "8Gi"
+    rbac:
+      create: true
+      clusterWide: false
+    podDisruptionBudget:
+      enabled: true
+      minAvailable: 1
+    serviceAccount:
+      create: true
+      name: ""
+      annotations: {}

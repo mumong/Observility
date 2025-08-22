@@ -1,0 +1,24 @@
+# InfluxDB Service
+{{- if .Values.customer.dataservice.influxdb2.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-influxdb2
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: influxdb2
+spec:
+  type: {{ .Values.customer.dataservice.influxdb2.service.type | quote }}
+  ports:
+    - name: http
+      port: {{ .Values.customer.dataservice.influxdb2.service.port }}
+      targetPort: 8086
+      protocol: TCP
+      {{- if eq .Values.customer.dataservice.influxdb2.service.type "NodePort" }}
+      nodePort: {{ .Values.customer.dataservice.influxdb2.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "monitoring-stack.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: influxdb2
+{{- end }}

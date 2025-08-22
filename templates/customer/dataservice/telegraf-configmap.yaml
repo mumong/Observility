@@ -1,0 +1,59 @@
+# Custom Telegraf configuration with dynamic service discovery
+# This ConfigMap overrides the default Telegraf configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-telegraf-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+  app.kubernetes.io/component: telegraf
+data:
+  telegraf.conf: |+
+    [agent]
+      collection_jitter = "0s"
+      debug = false
+      flush_interval = "5s"
+      flush_jitter = "0s"
+      interval = "10s"
+      logfile = ""
+      metric_batch_size = 10000
+      metric_buffer_limit = 100000
+      omit_hostname = false
+      precision = ""
+      quiet = false
+      round_interval = true
+
+    [global_tags]
+      cluster = "{{ .Values.customer.dataservice.global.clusterName }}"
+
+    [[outputs.influxdb_v2]]
+      urls = ["{{ include "monitoring-stack.influxdbURL" . }}"]
+      token = "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
+      bucket = "{{ .Values.customer.dataservice.influxdb2.adminUser.bucket }}"
+      organization = "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
+
+    [[inputs.statsd]]
+      allowed_pending_messages = 10000
+      metric_separator = "_"
+      percentile_limit = 1000
+      percentiles = [50.0, 95.0, 99.0]
+      service_address = ":8125"
+
+    [[inputs.internal]]
+      collect_memstats = false
+
+     [[inputs.prometheus]]
+       urls = [{{ include "monitoring-stack.prometheusURLs" . }}]
+       metric_version = 2
+       interval = "{{  (index .Values.customer.dataservice.telegraf.config.inputs 2).prometheus.interval }}"
+       timeout = "{{ (index .Values.customer.dataservice.telegraf.config.inputs 2).prometheus.timeout }}"
+
+    [[processors.enum]]
+      [[processors.enum.mapping]]
+        field = "status"
+        dest = "status_code"
+        [processors.enum.mapping.value_mappings]
+          healthy = 1
+          problem = 2
+          critical = 3

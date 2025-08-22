@@ -1,0 +1,15 @@
+# Pod disruption budget for monitoring components
+{{- if .Values.customer.dataservice.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-pdb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.customer.dataservice.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "monitoring-stack.selectorLabels" . | nindent 6 }}
+{{- end }}
