@@ -1,5 +1,6 @@
 # Custom Telegraf configuration with dynamic service discovery
 # This ConfigMap overrides the default Telegraf configuration
+{{- if .Values.customer.dataservice.telegraf.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -57,3 +58,4 @@ data:
           healthy = 1
           problem = 2
           critical = 3
+{{- end }}

@@ -10,12 +10,15 @@ dependencies:
     alias: grafana
     version: 9.2.7
     repository: "file://charts/grafana"
+    condition: metric.enabled
   - name: kube-state-metrics
     version: 5.37.0
     repository: "file://charts/kube-state-metrics"
+    condition: metric.enabled
   - name: prometheus-node-exporter
     version: 4.47.0
     repository: "file://charts/prometheus-node-exporter"
+    condition: metric.enabled
   # - name: prometheus-windows-exporter
   #   version: 0.10.0
   #   repository: "file://charts/prometheus-windows-exporter"
@@ -25,15 +28,15 @@ dependencies:
   - name: clickhouse
     version: '*.*.*'
     repository: "file://charts/clickhouse"
-    condition: tracing.clickhouse.enabled
+    condition: tracing.enabled,tracing.clickhouse.enabled
   - name: mysql
     version: '*.*.*'
     repository: "file://charts/mysql"
-    condition: tracing.mysql.enabled
+    condition: tracing.enabled,tracing.mysql.enabled
   - name: deepflow-agent
     version: '*.*.*'
     repository: "file://charts/deepflow-agent"
-    condition: tracing.deepflow-agent.enabled
+    condition: tracing.enabled,tracing.deepflow-agent.enabled
     import-values:
       - child: global
         parent: tracing.global

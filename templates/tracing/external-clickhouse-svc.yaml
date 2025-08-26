@@ -1,3 +1,4 @@
+{{- if .Values.tracing.enabled }}
 {{- if .Values.tracing.global.externalClickHouse.enabled }}
 apiVersion: v1
 kind: Service
@@ -81,4 +82,5 @@ spec:
 {{- end }}
 {{- end }}
 */}}
+{{- end }}
 {{- end }}

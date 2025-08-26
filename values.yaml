@@ -1,6 +1,6 @@
 metric:
-  # enabled: true
-  enabled: false
+  enabled: true
+  # enabled: false
   grafana:
     enabled: true
     namespaceOverride: ""
@@ -1730,8 +1730,8 @@ metric:
       sidecarResources: {}
 
 logging:
-  # enabled: true
-  enabled: false
+  enabled: true
+  # enabled: false
 
   elasticsearch:
     enabled: true
@@ -2135,8 +2135,8 @@ logging:
     # elasticsearchCertificateSecret: elss-master-certs
 
 tracing:
-  # enabled: true
-  enabled: false
+  enabled: true
+  # enabled: false
   global:
     image:
       repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce
@@ -2727,6 +2727,7 @@ tracing:
 customer:
   enabled: true
   lgtm:
+    # enabled: true
     enabled: false
   apiserver:
     # enabled: true
@@ -2740,8 +2741,8 @@ customer:
     serviceAccount:
       name: "alert-api"
   dataservice:
-    enabled: true
-    # enabled: false
+    # enabled: true
+    enabled: false
     global:
       clusterName: "my-cluster"
       xnetAgent:
@@ -2753,8 +2754,8 @@ customer:
           name: "xnet-management"
           port: 8000
     telegraf:
-      # enabled: true
-      enabled: false
+      enabled: true
+      # enabled: false
       resources:
         limits:
           cpu: "2"
@@ -2765,6 +2766,7 @@ customer:
       config:
         global_tags:
           cluster: "{{ .Values.customer.dataservice.global.clusterName }}"
+          cluster_id: "test-id"
         outputs:
           - influxdb_v2:
               urls:

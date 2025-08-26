@@ -1,3 +1,4 @@
+{{- if .Values.tracing.enabled }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -48,3 +49,4 @@ roleRef:
   kind: Role
   name: {{ include "deepflow.fullname" . }}-server
   apiGroup: ""
+{{- end }}

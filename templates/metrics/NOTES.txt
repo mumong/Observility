@@ -1,3 +1,4 @@
+{{- if .Values.metric.enabled }}
 {{ $.Chart.Name }} has been installed. Check its status by running:
   kubectl --namespace {{ template "kube-prometheus-stack.namespace" . }} get pods -l "release={{ $.Release.Name }}"
 
@@ -11,3 +12,4 @@ Access Grafana local instance:
   kubectl --namespace {{ template "kube-prometheus-stack.namespace" . }} port-forward $POD_NAME 3000
 
 Visit https://github.com/prometheus-operator/kube-prometheus for instructions on how to create & configure Alertmanager and Prometheus instances using the Operator.
+{{- end }}
