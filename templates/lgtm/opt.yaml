@@ -1,3 +1,4 @@
+{{- if .Values.customer.lgtm.enabled }}
 # this is intended for demo / testing purposes only, not for production usage
 apiVersion: v1
 kind: Service
@@ -79,3 +80,4 @@ spec:
           emptyDir: {}
         - name: pyroscope-storage
           emptyDir: {}
+{{- end }}

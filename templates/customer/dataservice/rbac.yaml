@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+  name: {{ include "monitoring-stack.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "monitoring-stack.labels" . | nindent 4 }}
@@ -45,7 +45,7 @@ roleRef:
   name: {{ include "monitoring-stack.fullname" . }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+    name: {{ include "monitoring-stack.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 {{- end }}
 
@@ -76,6 +76,6 @@ roleRef:
   name: {{ include "monitoring-stack.fullname" . }}-nodes
 subjects:
   - kind: ServiceAccount
-    name: {{ include "monitoring-stack.serviceAccountName" . }}-dataservice
+    name: {{ include "monitoring-stack.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 {{- end }}

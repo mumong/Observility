@@ -1,5 +1,6 @@
 metric:
-  enabled: true
+  # enabled: true
+  enabled: false
   grafana:
     enabled: true
     namespaceOverride: ""
@@ -1729,7 +1730,8 @@ metric:
       sidecarResources: {}
 
 logging:
-  enabled: true
+  # enabled: true
+  enabled: false
 
   elasticsearch:
     enabled: true
@@ -2133,7 +2135,8 @@ logging:
     # elasticsearchCertificateSecret: elss-master-certs
 
 tracing:
-  enabled: true
+  # enabled: true
+  enabled: false
   global:
     image:
       repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce
@@ -2723,8 +2726,11 @@ tracing:
 
 customer:
   enabled: true
+  lgtm:
+    enabled: false
   apiserver:
-    enabled: true
+    # enabled: true
+    enabled: false
     nodePort: 31520
     rbac:
       create: true
@@ -2735,6 +2741,7 @@ customer:
       name: "alert-api"
   dataservice:
     enabled: true
+    # enabled: false
     global:
       clusterName: "my-cluster"
       xnetAgent:
@@ -2745,12 +2752,9 @@ customer:
         managementService:
           name: "xnet-management"
           port: 8000
-    debug:
-      enabled: true
-      keepJobAlive: true
-      verboseLogging: true
     telegraf:
-      enabled: true
+      # enabled: true
+      enabled: false
       resources:
         limits:
           cpu: "2"
@@ -2794,6 +2798,7 @@ customer:
                   problem: 2
                   critical: 3
     influxdb2:
+      # enabled: false
       enabled: true
       adminUser:
         organization: "influxdata"

@@ -56,7 +56,7 @@ Create the name of the service account to use
 {{- default (include "monitoring-stack.fullname" .) .Values.customer.dataservice.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.customer.dataservice.serviceAccount.name }}
-{{- end }}
+{{- end }}-dataservice
 {{- end }}
 
 {{/*
