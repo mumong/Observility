@@ -52,31 +52,21 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "monitoring-stack.serviceAccountName" -}}
-{{- if .Values.customer.dataservice.serviceAccount.create }}
-{{- default (include "monitoring-stack.fullname" .) .Values.customer.dataservice.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.customer.dataservice.serviceAccount.name }}
-{{- end }}-dataservice
+{{- include "monitoring-stack.fullname" . }}-dataservice
 {{- end }}
 
 {{/*
-Get cluster name with auto-detection
+Get cluster name from telegraf config
 */}}
 {{- define "monitoring-stack.clusterName" -}}
-{{- if .Values.customer.dataservice.global.clusterName }}
-{{- .Values.customer.dataservice.global.clusterName }}
-{{- else if .Values.customer.dataservice.global.xnetAgent.autoDetectCluster }}
-{{- .Values.customer.dataservice.global.xnetAgent.fallbackClusterName }}
-{{- else }}
-{{- .Values.customer.dataservice.global.xnetAgent.fallbackClusterName }}
-{{- end }}
+{{- .Values.customer.dataservice.telegraf.config.global_tags.cluster | default "my-cluster" }}
 {{- end }}
 
 {{/*
-Generate InfluxDB URL with service discovery
+Generate InfluxDB URL for local service
 */}}
 {{- define "monitoring-stack.influxdbURL" -}}
-http://{{ .Values.customer.dataservice.global.xnetAgent.managementService.name }}.{{ .Values.customer.dataservice.global.xnetAgent.serviceNamespace }}.svc.cluster.local:{{ .Values.customer.dataservice.global.xnetAgent.managementService.port }}
+http://{{ include "monitoring-stack.fullname" . }}-influxdb2.{{ .Release.Namespace }}.svc.cluster.local:8086
 {{- end }}
 
 {{/*
@@ -85,3 +75,4 @@ Generate Prometheus URLs with namespace discovery
 {{- define "monitoring-stack.prometheusURLs" -}}
 "http://{{ .Release.Name  }}-observability-prometheus.{{ .Release.Namespace  }}.svc.cluster.local:9090/federate?match[]={__name__!=\"\"}"
 {{- end }}
+

@@ -26,10 +26,12 @@ data:
       round_interval = true
 
     [global_tags]
-      cluster = "{{ .Values.customer.dataservice.global.clusterName }}"
+      cluster = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
+      cluster_id = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster_id }}"
+
 
     [[outputs.influxdb_v2]]
-      urls = ["{{ include "monitoring-stack.influxdbURL" . }}"]
+      urls = ["{{ .Values.customer.dataservice.telegraf.config.global_tags.output}}"]
       token = "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
       bucket = "{{ .Values.customer.dataservice.influxdb2.adminUser.bucket }}"
       organization = "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
@@ -47,8 +49,8 @@ data:
      [[inputs.prometheus]]
        urls = [{{ include "monitoring-stack.prometheusURLs" . }}]
        metric_version = 2
-       interval = "{{  (index .Values.customer.dataservice.telegraf.config.inputs 2).prometheus.interval }}"
-       timeout = "{{ (index .Values.customer.dataservice.telegraf.config.inputs 2).prometheus.timeout }}"
+       interval = "60s"
+       timeout = "100s"
 
     [[processors.enum]]
       [[processors.enum.mapping]]

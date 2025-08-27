@@ -54,14 +54,9 @@ spec:
               mountPath: /var/lib/influxdb2
       volumes:
         - name: data
-          {{- if .Values.customer.dataservice.influxdb2.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "monitoring-stack.fullname" . }}-influxdb2
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
       restartPolicy: Always
-  {{- if .Values.customer.dataservice.influxdb2.persistence.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -69,9 +64,8 @@ spec:
           {{- include "monitoring-stack.labels" . | nindent 10 }}
           app.kubernetes.io/component: influxdb2
       spec:
-        accessModes: [{{ .Values.customer.dataservice.influxdb2.persistence.accessMode | quote }}]
+        accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: {{ .Values.customer.dataservice.influxdb2.persistence.size | quote }}
-  {{- end }}
+            storage: "50Gi"
 {{- end }}

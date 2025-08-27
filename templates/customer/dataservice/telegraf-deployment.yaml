@@ -27,7 +27,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: CLUSTER_NAME
-              value: "{{ .Values.customer.dataservice.global.clusterName }}"
+              value: "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster | default "my-cluster" }}"
           command:
             - /bin/sh
             - -c
@@ -35,9 +35,9 @@ spec:
               echo "🚀 [Telegraf] Starting Telegraf..."
               echo "🎯 [Telegraf] Using cluster name: $CLUSTER_NAME"
               
-              # Create config with cluster name from values
-              sed "s/{{ .Values.customer.dataservice.global.clusterName }}/$CLUSTER_NAME/g" /etc/telegraf/telegraf.conf.template > /etc/telegraf/telegraf.conf
-              echo "📝 [Telegraf] Config generated with cluster name"
+              # Copy the template config to working config
+              cp /etc/telegraf/telegraf.conf.template /etc/telegraf/telegraf.conf
+              echo "📝 [Telegraf] Config copied successfully"
               
               /usr/bin/telegraf --config /etc/telegraf/telegraf.conf
           ports:

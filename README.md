@@ -47,29 +47,28 @@
 
 ```bash
 # 安装到默认命名空间
-helm install obs . -n observability --create-namespace
+helm install obs . -n xnet --create-namespace
 
-# 安装到指定命名空间
-helm install obs . -n my-observability --create-namespace
+
 ```
 
 ### 验证安装
 
 ```bash
 # 检查 Pod 状态
-kubectl get pods -n observability
+kubectl get pods -n xnet
 
 # 检查服务
-kubectl get svc -n observability
+kubectl get svc -n xnet
 
 # 查看 Grafana 仪表盘
-kubectl port-forward -n observability svc/obs-grafana 3000:80
+kubectl port-forward -n xnet svc/obs-grafana 3000:80
 ```
 
 ### 卸载
 
 ```bash
-helm uninstall obs -n observability
+helm uninstall obs -n xnet
 ```
 
 ## ⚙️ 重要配置
@@ -234,8 +233,8 @@ tracing:
 
 1. **Pod 启动失败**
    ```bash
-   kubectl describe pod <pod-name> -n observability
-   kubectl logs <pod-name> -n observability
+   kubectl describe pod <pod-name> -n xnet
+   kubectl logs <pod-name> -n xnet
    ```
 
 2. **存储卷挂载失败**
