@@ -19,9 +19,6 @@ dependencies:
     version: 4.47.0
     repository: "file://charts/prometheus-node-exporter"
     condition: metric.enabled
-  # - name: prometheus-windows-exporter
-  #   version: 0.10.0
-  #   repository: "file://charts/prometheus-windows-exporter"
   - name: crds
     version: 0.0.0
     repository: "file://charts/crds"
@@ -40,10 +37,6 @@ dependencies:
     import-values:
       - child: global
         parent: tracing.global
-  # - name: grafana-deepflow
-  #   version: '*.*.*'
-  #   repository: "file://charts/grafana-deepflow"
-  #   condition: tracing.grafana.enabled
   - name: stella-agent-ce
     version: '*.*.*'
     repository: "file://charts/stella-agent-ce"
