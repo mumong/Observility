@@ -461,6 +461,15 @@ terminationGracePeriodSeconds: null
 tolerations:
   - operator: "Exists"
     effect: "NoSchedule"
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
 
 # Enable or disable container termination message settings
 # https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/
