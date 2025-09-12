@@ -357,17 +357,11 @@ affinity: {}
 
 ## Tolerations for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
-tolerations:
-  - operator: "Exists"
-    effect: "NoSchedule"
-  - effect: NoExecute
-    key: node.kubernetes.io/not-ready
-    operator: Exists
-    tolerationSeconds: 300
-  - effect: NoExecute
-    key: node.kubernetes.io/unreachable
-    operator: Exists
-    tolerationSeconds: 300
+tolerations: []
+  # - operator: "Exists"
+  #   effect: "NoSchedule"
+  # - operator: "Exists"
+  #   effect: "NoSchedule"
 
 ## Topology spread constraints for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
