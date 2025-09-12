@@ -461,7 +461,6 @@ terminationGracePeriodSeconds: null
 tolerations:
   - operator: "Exists"
     effect: "NoSchedule"
-    tolerationSeconds: 300
   - effect: NoExecute
     key: node.kubernetes.io/not-ready
     operator: Exists
