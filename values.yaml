@@ -306,17 +306,9 @@ metric:
       podAntiAffinity: "soft"
       podAntiAffinityTopologyKey: kubernetes.io/hostname
       affinity: {}
-      tolerations:
-        - operator: "Exists"
-          effect: "NoSchedule"
-        - effect: NoExecute
-          key: node.kubernetes.io/not-ready
-          operator: Exists
-          tolerationSeconds: 300
-        - effect: NoExecute
-          key: node.kubernetes.io/unreachable
-          operator: Exists
-          tolerationSeconds: 300
+      tolerations: []
+        # - operator: "Exists"
+        #   effect: "NoSchedule"
       listenLocal: false
       containers: []
       volumes: []
@@ -369,17 +361,9 @@ metric:
         relabelings: []
     selfMonitor:
       enabled: false
-    tolerations:
-      - operator: "Exists"
-        effect: "NoSchedule"
-      - effect: NoExecute
-        key: node.kubernetes.io/not-ready
-        operator: Exists
-        tolerationSeconds: 300
-      - effect: NoExecute
-        key: node.kubernetes.io/unreachable
-        operator: Exists
-        tolerationSeconds: 300
+    tolerations: []
+      # - operator: "Exists"
+      #   effect: "NoSchedule"
   nodeExporter:
     enabled: true
     operatingSystems:
@@ -390,17 +374,9 @@ metric:
       darwin:
         enabled: true
     forceDeployDashboards: false
-    tolerations:
-      - operator: "Exists"
-        effect: "NoSchedule"
-      - effect: NoExecute
-        key: node.kubernetes.io/not-ready
-        operator: Exists
-        tolerationSeconds: 300
-      - effect: NoExecute
-        key: node.kubernetes.io/unreachable
-        operator: Exists
-        tolerationSeconds: 300
+    tolerations: []
+      # - operator: "Exists"
+      #   effect: "NoSchedule"
     hostNetwork: false
     port: 9101
     containerPort: 9101
@@ -595,17 +571,9 @@ metric:
         tag: v3.4.1
         sha: ""
         pullPolicy: IfNotPresent
-      tolerations:
-        - operator: "Exists"
-          effect: "NoSchedule"
-        - effect: NoExecute
-          key: node.kubernetes.io/not-ready
-          operator: Exists
-          tolerationSeconds: 300
-        - effect: NoExecute
-          key: node.kubernetes.io/unreachable
-          operator: Exists
-          tolerationSeconds: 300
+      tolerations: []
+        # - operator: "Exists"
+        #   effect: "NoSchedule"
       topologySpreadConstraints: []
       alertingEndpoints: []
       externalLabels: {}
@@ -1047,15 +1015,9 @@ metric:
     extraArgs:
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
       - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
-    tolerations:
-      - effect: NoExecute
-        key: node.kubernetes.io/not-ready
-        operator: Exists
-        tolerationSeconds: 300
-      - effect: NoExecute
-        key: node.kubernetes.io/unreachable
-        operator: Exists
-        tolerationSeconds: 300
+    tolerations: []
+      # - operator: "Exists"
+      #   effect: "NoSchedule"
     service:
       portName: http-metrics
       ipDualStack:
@@ -1720,17 +1682,9 @@ metric:
       privileged: true
     nodeSelector:
       kubernetes.io/os: linux
-    tolerations:
-      - effect: NoSchedule
-        key: node-role.kubernetes.io/control-plane
-      - effect: NoExecute
-        key: node.kubernetes.io/not-ready
-        operator: Exists
-        tolerationSeconds: 300
-      - effect: NoExecute
-        key: node.kubernetes.io/unreachable
-        operator: Exists
-        tolerationSeconds: 300
+    tolerations: []
+      # - effect: NoSchedule
+      #   key: node-role.kubernetes.io/control-plane
     affinity: {}
     resources: {}
     extraEnvVars:

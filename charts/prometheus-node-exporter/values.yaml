@@ -458,17 +458,11 @@ nodeSelector:
 # Specify grace period for graceful termination of pods. Defaults to 30 if null or not specified
 terminationGracePeriodSeconds: null
 
-tolerations:
-  - operator: "Exists"
-    effect: "NoSchedule"
-  - effect: NoExecute
-    key: node.kubernetes.io/not-ready
-    operator: Exists
-    tolerationSeconds: 300
-  - effect: NoExecute
-    key: node.kubernetes.io/unreachable
-    operator: Exists
-    tolerationSeconds: 300
+tolerations: []
+  # - operator: "Exists"
+  #   effect: "NoSchedule"
+  # - operator: "Exists"
+  #   effect: "NoSchedule"
 
 # Enable or disable container termination message settings
 # https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/
