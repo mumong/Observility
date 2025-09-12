@@ -309,6 +309,15 @@ metric:
       tolerations:
         - operator: "Exists"
           effect: "NoSchedule"
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
       listenLocal: false
       containers: []
       volumes: []
@@ -364,6 +373,15 @@ metric:
     tolerations:
       - operator: "Exists"
         effect: "NoSchedule"
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
   nodeExporter:
     enabled: true
     operatingSystems:
@@ -377,6 +395,15 @@ metric:
     tolerations:
       - operator: "Exists"
         effect: "NoSchedule"
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     hostNetwork: false
     port: 9101
     containerPort: 9101
@@ -574,6 +601,15 @@ metric:
       tolerations:
         - operator: "Exists"
           effect: "NoSchedule"
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
       topologySpreadConstraints: []
       alertingEndpoints: []
       externalLabels: {}
@@ -802,7 +838,15 @@ metric:
         resources: {}
         hostNetwork: false
         nodeSelector: {}
-        tolerations: []
+        tolerations: 
+          - effect: NoExecute
+            key: node.kubernetes.io/not-ready
+            operator: Exists
+            tolerationSeconds: 300
+          - effect: NoExecute
+            key: node.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 300
         affinity: {}
         dnsConfig: {}
         securityContext:
@@ -834,7 +878,15 @@ metric:
         podAnnotations: {}
         nodeSelector: {}
         affinity: {}
-        tolerations: []
+        tolerations: 
+          - effect: NoExecute
+            key: node.kubernetes.io/not-ready
+            operator: Exists
+            tolerationSeconds: 300
+          - effect: NoExecute
+            key: node.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 300
         securityContext:
           runAsGroup: 2000
           runAsNonRoot: true
@@ -932,7 +984,15 @@ metric:
       GOGC: "30"
     hostNetwork: false
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     affinity: {}
     dnsConfig: {}
     securityContext:
@@ -992,8 +1052,14 @@ metric:
       - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
       - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs|erofs)$
     tolerations:
-      - operator: "Exists"
-        effect: "NoSchedule"
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     service:
       portName: http-metrics
       ipDualStack:
@@ -1044,7 +1110,15 @@ metric:
       extraVolumeMounts: []
       nodeSelector: {}
       affinity: {}
-      tolerations: []
+      tolerations: 
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
       topologySpreadConstraints: []
       labels: {}
       annotations: {}
@@ -1601,7 +1675,15 @@ metric:
         podAntiAffinity: "soft"
         podAntiAffinityTopologyKey: kubernetes.io/hostname
         affinity: {}
-        tolerations: []
+        tolerations: 
+          - effect: NoExecute
+            key: node.kubernetes.io/not-ready
+            operator: Exists
+            tolerationSeconds: 300
+          - effect: NoExecute
+            key: node.kubernetes.io/unreachable
+            operator: Exists
+            tolerationSeconds: 300
         topologySpreadConstraints: []
         securityContext:
           runAsGroup: 2000
@@ -1645,6 +1727,15 @@ metric:
     tolerations:
       - effect: NoSchedule
         key: node-role.kubernetes.io/control-plane
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     affinity: {}
     resources: {}
     extraEnvVars:
@@ -1864,7 +1955,15 @@ logging:
     schedulerName: ""
     imagePullSecrets: []
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     ingress:
       enabled: true
       annotations: {}
@@ -1971,7 +2070,15 @@ logging:
       timeoutSeconds: 3
     imagePullSecrets: []
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     affinity: {}
     lifecycle: {}
 
@@ -2029,7 +2136,15 @@ logging:
         limits:
           cpu: "1000m"
           memory: "200Mi"
-      tolerations: []
+      tolerations: 
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
     deployment:
       annotations: {}
       labels: {}
@@ -2072,7 +2187,15 @@ logging:
         limits:
           cpu: "1000m"
           memory: "200Mi"
-      tolerations: []
+      tolerations: 
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
     replicas: 1
     extraContainers: ""
     extraInitContainers: []
@@ -2338,7 +2461,15 @@ tracing:
     podAffinityTermLabelSelector: []
     nodeAffinityLabelSelector: []
     nodeAffinityTermLabelSelector: []
-  tolerations: []
+  tolerations: 
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
   config:
     tridentTypeForUnknowVtap: 3
   configmap:
@@ -2486,7 +2617,15 @@ tracing:
       type: ClusterIP
     resources: {}
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     podAntiAffinityLabelSelector:
       - labelSelector:
         - key: app
@@ -2555,7 +2694,15 @@ tracing:
       type: ClusterIP
     resources: {}
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     podAntiAffinityLabelSelector: []
     podAntiAffinityTermLabelSelector: []
     podAffinityLabelSelector: []
@@ -2625,7 +2772,15 @@ tracing:
         cpu: 100m
         memory: 128Mi
     nodeSelector: {}
-    tolerations: []
+    tolerations: 
+      - effect: NoExecute
+        key: node.kubernetes.io/not-ready
+        operator: Exists
+        tolerationSeconds: 300
+      - effect: NoExecute
+        key: node.kubernetes.io/unreachable
+        operator: Exists
+        tolerationSeconds: 300
     podAntiAffinityLabelSelector: []
     podAntiAffinityTermLabelSelector: []
     podAffinityLabelSelector: []
