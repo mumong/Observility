@@ -73,6 +73,6 @@ http://{{ include "monitoring-stack.fullname" . }}-influxdb2.{{ .Release.Namespa
 Generate Prometheus URLs with namespace discovery
 */}}
 {{- define "monitoring-stack.prometheusURLs" -}}
-"http://{{ .Release.Name  }}-observability-prometheus.{{ .Release.Namespace  }}.svc.cluster.local:9090/federate?match[]={__name__!=\"\"}"
+"http://{{ .Release.Name  }}-prometheus.{{ .Release.Namespace  }}.svc.cluster.local:9090/federate?match[]={__name__!=\"\"}"
 {{- end }}
 
