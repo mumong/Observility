@@ -109,14 +109,14 @@ helm install observability ./observability-1.0.0.tgz --set customer.lgtm.enabled
 ```bash
 curl --fail-with-body \
   --request POST \
-  --form 'chart=@observability-1.0.0.tgz' \
+  --form 'chart=@observability-1.0.1.tgz' \
   --user wanghuhu:glpat-Yx3inEj9V-PJLu13vtwo \
-  "http://192.168.1.63/api/v4/projects/76/packages/helm/api/stable/charts"
+  "http://192.168.1.63/api/v4/projects/65/packages/helm/api/stable/charts"
 ```
 
 ### 添加仓库源
 ```bash
-helm repo add myrepo "http://192.168.1.63/api/v4/projects/76/packages/helm/stable" \
+helm repo add myrepo "http://192.168.1.63/api/v4/projects/65/packages/helm/stable" \
   --username wanghuhu \
   --password glpat-Yx3inEj9V-PJLu13vtwo
 ```
@@ -129,5 +129,26 @@ helm install observability myrepo/observability -n ob
 或从本地文件安装：
 ```bash
 helm install observability ./observability-1.0.0.tgz --set customer.lgtm.enabled=false -n ob
+```
+
+---
+
+## 6️⃣ 快速部署命令
+
+### 云管侧部署
+```bash
+helm install observability myrepo/observability -n xnet \
+  --set customer.dataservice.telegraf.enabled=false \
+  --set customer.dataservice.influxdb2.enabled=true
+```
+
+### 边缘侧部署
+```bash
+helm install observability myrepo/observability -n xnet \
+  --set customer.dataservice.telegraf.config.global_tags.output=http://192.168.22.180:31521
+
+  如果需要设置 cluster,cluster_id可配置参数
+  --set customer.dataservice.telegraf.config.global_tags.cluster=<cluster_name>
+  --set customer.dataservice.telegraf.config.global_tags.cluster_id=<cluster_id>
 ```
 
