@@ -133,19 +133,23 @@ helm install observability ./observability-1.0.0.tgz --set customer.lgtm.enabled
 
 ---
 
+
 ## 6️⃣ 快速部署命令
 
 ### 云管侧部署
 ```bash
 helm install observability myrepo/observability -n xnet \
-  --set customer.dataservice.telegraf.enabled=false \
-  --set customer.dataservice.influxdb2.enabled=true
+  --set customer.dataservice.influxdb2.enabled=true \
+  --set customer.dataservice.telegraf.config.global_tags.cluster=cloud_control \
+  --set customer.dataservice.telegraf.config.global_tags.cluster_id=test_id \
+  --set customer.dataservice.telegraf.config.global_tags.output=http://192.168.21.82:31521
+
 ```
 
 ### 边缘侧部署
 ```bash
 helm install observability myrepo/observability -n xnet \
-  --set customer.dataservice.telegraf.config.global_tags.output=http://192.168.22.180:31521
+  --set customer.dataservice.telegraf.config.global_tags.output=http://192.168.21.82:31521
 
   如果需要设置 cluster,cluster_id可配置参数
   --set customer.dataservice.telegraf.config.global_tags.cluster=<cluster_name>
