@@ -142,7 +142,7 @@ helm install observability myrepo/observability -n xnet \
   --set customer.dataservice.influxdb2.enabled=true \
   --set customer.dataservice.telegraf.config.global_tags.cluster=cloud_control \
   --set customer.dataservice.telegraf.config.global_tags.cluster_id=test_id \
-  --set customer.dataservice.telegraf.config.global_tags.output=http://192.168.21.82:31521
+  --set customer.dataservice.telegraf.config.global_tags.output=http://influxdb2.xnet.svc:8086
 
 ```
 
