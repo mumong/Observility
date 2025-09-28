@@ -29,6 +29,9 @@ data:
       cluster = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
       cluster_id = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster_id }}"
 
+    # [[processors.tagdrop]]
+    #   tag_keys = ["container_id","name","id","uid"]
+
 
     [[outputs.influxdb_v2]]
       urls = ["{{ .Values.customer.dataservice.telegraf.config.global_tags.output}}"]
@@ -50,8 +53,13 @@ data:
        urls = [{{ include "monitoring-stack.prometheusURLs" . }}]
        metric_version = 2
        interval = "60s"
-       timeout = "100s"
-
+       timeout = "300s"
+       taginclude = ["container", "device", "cluster", "mode", "fstype", "instance"]
+       [inputs.prometheus.tagpass]
+         container = ["node-exporter"]
+         instance = ["*:9100"]
+       [inputs.prometheus.tagdrop]
+         device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
     [[processors.enum]]
       [[processors.enum.mapping]]
         field = "status"
