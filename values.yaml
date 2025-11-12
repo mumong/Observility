@@ -2859,7 +2859,7 @@ customer:
           memory: "6Gi"
       config:
         global_tags:
-          cluster: "my-cluster"
+          cluster: "final_test"
           # cluster_id: "test-id"
           # 必须是influxdb的可以接受的端口，使用serveless的方式配置 格式为<service-name>.<namespace>.svc.cluster.local.<port>
           # output: "http://influxdb2.ob.svc.cluster.local:8086"
@@ -2886,14 +2886,24 @@ customer:
         storageSeriesIdSetCacheSize: "1000"
         queryConcurrency: "0"
       bucketbuild:
-        enabled: false
-        retention: "30d"
-        shardGroupDuration: "72h"
-        description: "xnet_test"
-        name: "xnet_test"
-        id: "xnet_test"
-        organization: "influxdata"
-        token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
+        enabled: true
+        buckets:
+          - name: "xnet_usage"
+            retention: "30d"
+            shardGroupDuration: "24h"
+            organization: "influxdata"
+            token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
+          - name: "xnet_test-bucket"
+            retention: "30d"
+            shardGroupDuration: "72h"
+            organization: "influxdata"
+            token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
+          # 可以添加更多 bucket
+          # - name: "another_bucket"
+          #   retention: "7d"
+          #   shardGroupDuration: "12h"
+          #   organization: "influxdata"
+          #   token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
       service:
         type: NodePort
         port: 8086
