@@ -2859,14 +2859,14 @@ customer:
           memory: "6Gi"
       config:
         global_tags:
-          cluster: "final_test"
+          cluster: "final-test"
           # cluster_id: "test-id"
           # 必须是influxdb的可以接受的端口，使用serveless的方式配置 格式为<service-name>.<namespace>.svc.cluster.local.<port>
-          # output: "http://influxdb2.ob.svc.cluster.local:8086"
-          output: "http://10.2.0.48:31521"
+          output: "http://influxdb2.ob.svc.cluster.local:8086"
+          # output: "http://10.2.0.48:31521"
     influxdb2:
-      # enabled: false
-      enabled: true
+      enabled: false
+      # enabled: true
       adminUser:
         organization: "influxdata"
         bucket: "xnet_result"
