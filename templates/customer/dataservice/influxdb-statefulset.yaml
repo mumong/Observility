@@ -40,8 +40,36 @@ spec:
               value: {{ .Values.customer.dataservice.influxdb2.adminUser.organization | quote }}
             - name: DOCKER_INFLUXDB_INIT_BUCKET
               value: {{ .Values.customer.dataservice.influxdb2.adminUser.bucket | quote }}
+            - name: DOCKER_INFLUXDB_INIT_RETENTION
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.retention_policy | quote }}
+            # - name: DOCKER_INFLUXDB_INIT_BUCKET_RETENTION
+            #   value: {{ .Values.customer.dataservice.influxdb2.adminUser.bucketRetention | quote }}
+            # - name: DOCKER_INFLUXDB_INIT_BUCKET_SHARD_GROUP_DURATION
+            #   value: {{ .Values.customer.dataservice.influxdb2.adminUser.bucketShardGroupDuration | quote }}
             - name: DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
               value: {{ .Values.customer.dataservice.influxdb2.adminUser.token | quote }}
+            - name: INFLUXD_STORAGE_CACHE_MAX_MEMORY_SIZE	
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageCacheMaxMemorySize | quote }}
+            - name: INFLUXD_STORAGE_CACHE_SNAPSHOT_MEMORY_SIZE	
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageCacheSnapshotMemorySize | quote }}
+            - name: INFLUXD_STORAGE_TSM_USE_MADV_WILLNEED
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageTsmUseMadvWillneed | quote }}
+            - name: INFLUXD_STORAGE_CACHE_SNAPSHOT_WRITE_COLD_DURATION
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageCacheSnapshotWriteColdDuration | quote }}
+            - name: INFLUXD_STORAGE_COMPACT_FULL_WRITE_COLD_DURATION
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageCompactFullWriteColdDuration | quote }}
+            - name: INFLUXD_STORAGE_COMPACT_THROUGHPUT_BURST	
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageCompactThroughputBurst | quote }}
+            - name: INFLUXD_STORAGE_WAL_FSYNC_DELAY	
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageWalFsyncDelay | quote }}
+            # - name: INFLUXD_QUERY_MAX_MEMORY_BYTES	
+            #   value: {{ .Values.customer.dataservice.influxdb2.adminUser.queryMaxMemoryBytes | quote }}
+            - name: INFLUXD_STORAGE_TSM_USE_MADV_WILLNEED
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageTsmUseMadvWillneed | quote }}
+            - name: INFLUXD_STORAGE_SERIES_ID_SET_CACHE_SIZE
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageSeriesIdSetCacheSize | quote }}
+            - name: INFLUXD_QUERY_CONCURRENCY
+              value: {{ .Values.customer.dataservice.influxdb2.adminUser.queryConcurrency | quote }}
           resources:
             limits:
               cpu: {{ .Values.customer.dataservice.influxdb2.resources.limits.cpu | quote }}

@@ -8,29 +8,25 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "monitoring-stack.labels" . | nindent 4 }}
-  app.kubernetes.io/component: telegraf
+    app.kubernetes.io/component: telegraf
 data:
   telegraf.conf: |+
     [agent]
       collection_jitter = "0s"
       debug = false
-      flush_interval = "5s"
+      flush_interval = "30s"
       flush_jitter = "0s"
-      interval = "10s"
+      interval = "30s"
       logfile = ""
-      metric_batch_size = 10000
-      metric_buffer_limit = 100000
+      metric_batch_size = 280000
+      metric_buffer_limit = 400000
       omit_hostname = false
-      precision = ""
+      precision = "1ms"
       quiet = false
       round_interval = true
 
-    [global_tags]
-      cluster = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
-      cluster_id = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster_id }}"
-
-    # [[processors.tagdrop]]
-    #   tag_keys = ["container_id","name","id","uid"]
+    # [global_tags]
+    #   cluster = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
 
 
     [[outputs.influxdb_v2]]
@@ -38,6 +34,10 @@ data:
       token = "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
       bucket = "{{ .Values.customer.dataservice.influxdb2.adminUser.bucket }}"
       organization = "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
+      timeout = "600s"
+      content_encoding = "gzip"
+      #namepass = ["{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"]
+
 
     [[inputs.statsd]]
       allowed_pending_messages = 10000
@@ -46,26 +46,38 @@ data:
       percentiles = [50.0, 95.0, 99.0]
       service_address = ":8125"
 
+
     [[inputs.internal]]
-      collect_memstats = false
+      collect_memstats = true
 
      [[inputs.prometheus]]
        urls = [{{ include "monitoring-stack.prometheusURLs" . }}]
        metric_version = 2
-       interval = "60s"
-       timeout = "300s"
-       taginclude = ["container", "device", "cluster", "mode", "fstype", "instance"]
-       [inputs.prometheus.tagpass]
-         container = ["node-exporter"]
-         instance = ["*:9100"]
-       [inputs.prometheus.tagdrop]
-         device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
-    [[processors.enum]]
-      [[processors.enum.mapping]]
-        field = "status"
-        dest = "status_code"
-        [processors.enum.mapping.value_mappings]
-          healthy = 1
-          problem = 2
-          critical = 3
+       interval = "30s"
+       timeout = "600s"
+       name_override = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
+      #  taginclude = ["device","mode", "fstype", "instance","cpu","container_id","cluster","cluster_id"]
+      taginclude = ["device","mode", "fstype", "instance","cpu","cluster"]
+      [inputs.prometheus.tags]
+        cluster = "{{ .Values.customer.dataservice.telegraf.config.global_tags.cluster}}"
+      [inputs.prometheus.tagdrop]
+        device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
+
+    # ########################################################
+    # # 额外的 Prometheus 数据源：cluster1-10
+    # # 所有数据都会输出到同一个 bucket（因为 namepass 被注释了）
+    # ########################################################
+    # {{- range $i := until 10 }}
+    #  [[inputs.prometheus]]
+    #    urls = [{{ include "monitoring-stack.prometheusURLs" $ }}]
+    #    metric_version = 2
+    #    interval = "30s"
+    #    timeout = "600s"
+    #    name_override = "cluster{{ add $i 1 }}"
+    #   taginclude = ["device","mode", "fstype", "instance","cpu","cluster","cluster_id"]
+    #   [inputs.prometheus.tags]
+    #     cluster = "cluster{{ add $i 1 }}"
+    #   [inputs.prometheus.tagdrop]
+    #     device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
+    # {{- end }}
 {{- end }}

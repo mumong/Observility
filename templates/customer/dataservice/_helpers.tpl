@@ -66,7 +66,7 @@ Get cluster name from telegraf config
 Generate InfluxDB URL for local service
 */}}
 {{- define "monitoring-stack.influxdbURL" -}}
-http://{{ include "monitoring-stack.fullname" . }}-influxdb2.{{ .Release.Namespace }}.svc.cluster.local:8086
+http://influxdb2.{{ .Release.Namespace }}.svc.cluster.local:8086
 {{- end }}
 
 {{/*
