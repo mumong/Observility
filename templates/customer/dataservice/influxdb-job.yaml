@@ -51,7 +51,7 @@ spec:
               echo "InfluxDB is ready. Starting initialization process."
 
               # 2. Create buckets if configured
-              {{- if .Values.customer.dataservice.influxdb2.buckets }}
+              {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
               if [ -f "/etc/influxdb/scripts/create-buckets.sh" ]; then
                 echo "Creating buckets..."
                 /etc/influxdb/scripts/create-buckets.sh
@@ -92,7 +92,7 @@ spec:
           volumeMounts:
             - name: task-config
               mountPath: /etc/influxdb/tasks
-            {{- if .Values.customer.dataservice.influxdb2.buckets }}
+            {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
             - name: bucket-scripts
               mountPath: /etc/influxdb/scripts
               readOnly: true
@@ -101,7 +101,7 @@ spec:
         - name: task-config
           configMap:
             name: {{ include "monitoring-stack.fullname" . }}-influxdb-tasks
-        {{- if .Values.customer.dataservice.influxdb2.buckets }}
+        {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
         - name: bucket-scripts
           configMap:
             name: {{ include "monitoring-stack.fullname" . }}-influxdb-buckets
