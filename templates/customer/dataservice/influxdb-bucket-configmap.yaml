@@ -14,8 +14,6 @@ data:
     set -e
 
     INFLUXDB_HOST_URL="{{ include "monitoring-stack.influxdbURL" . }}"
-    ORG="{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
-    TOKEN="{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
     BUCKET_BUILD_ENABLED="{{ .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}"
 
     echo "Waiting for InfluxDB to be ready at $INFLUXDB_HOST_URL..."
@@ -36,74 +34,81 @@ data:
     echo "InfluxDB is ready."
 
     # Check if bucket build is enabled
-    if [ "$BUCKET_BUILD_ENABLED" = "true" ]; then
-      echo "Bucket build is enabled. Creating bucket..."
-    else
+    if [ "$BUCKET_BUILD_ENABLED" != "true" ]; then
       echo "Bucket build is disabled. Skipping bucket creation."
-      echo "Set bucketbuild.enabled: true in configuration to enable bucket creation."
       exit 0
     fi
 
-    # Create bucket from bucketbuild configuration
-    echo "Creating bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} with retention {{ .Values.customer.dataservice.influxdb2.bucketbuild.retention }} and shard duration {{ .Values.customer.dataservice.influxdb2.bucketbuild.shardGroupDuration }}"
+    echo "Bucket build is enabled. Starting bucket creation process..."
+    {{- if .Values.customer.dataservice.influxdb2.bucketbuild.buckets }}
+    FAILED_COUNT=0
+    SUCCESS_COUNT=0
+    SKIPPED_COUNT=0
+    {{- range .Values.customer.dataservice.influxdb2.bucketbuild.buckets }}
+    # Processing bucket: {{ .name }}
+    BUCKET_NAME="{{ .name }}"
+    BUCKET_ORG="{{ .organization }}"
+    BUCKET_TOKEN="{{ .token }}"
+    BUCKET_RETENTION="{{ .retention }}"
+    BUCKET_SHARD_DURATION="{{ .shardGroupDuration }}"
+
+    echo ""
+    echo "Processing bucket: $BUCKET_NAME (org: $BUCKET_ORG, retention: $BUCKET_RETENTION, shard: $BUCKET_SHARD_DURATION)"
 
     # Check if bucket already exists
-    BUCKET_EXISTS=$(influx bucket list \
-      --org "$ORG" \
-      --token "$TOKEN" \
+    BUCKET_EXISTS=0
+    BUCKET_LIST_OUTPUT=$(influx bucket list \
+      --org "$BUCKET_ORG" \
+      --token "$BUCKET_TOKEN" \
       --host "$INFLUXDB_HOST_URL" \
-      --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
-      --hide-headers | wc -l)
-
-    if [ "$BUCKET_EXISTS" -eq 0 ]; then
-      echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} does not exist, creating..."
-      influx bucket create \
-        --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
-        --org "$ORG" \
-        --token "$TOKEN" \
-        --host "$INFLUXDB_HOST_URL" \
-        --retention "{{ .Values.customer.dataservice.influxdb2.bucketbuild.retention }}" \
-        --shard-group-duration "{{ .Values.customer.dataservice.influxdb2.bucketbuild.shardGroupDuration }}" \
-        {{- if .Values.customer.dataservice.influxdb2.bucketbuild.description }}--description "{{ .Values.customer.dataservice.influxdb2.bucketbuild.description }}"{{- end }}
-
-      if [ $? -eq 0 ]; then
-        echo "Successfully created bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
-      else
-        echo "Failed to create bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
-        exit 1
-      fi
-    else
-      echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} already exists, checking configuration..."
-
-      # Get bucket details to check if update is needed
-      BUCKET_ID=$(influx bucket list \
-        --org "$ORG" \
-        --token "$TOKEN" \
-        --host "$INFLUXDB_HOST_URL" \
-        --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
-        --hide-headers | awk '{print $1}')
-
-      if [ -n "$BUCKET_ID" ]; then
-        echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} exists with ID: $BUCKET_ID"
-        echo "Note: This bucket was created by StatefulSet with default retention."
-        echo "If you need to update retention or shard duration, please delete and recreate bucket manually."
-
-        # Show current bucket details
-        echo "Current bucket details:"
-        influx bucket list \
-          --org "$ORG" \
-          --token "$TOKEN" \
-          --host "$INFLUXDB_HOST_URL" \
-          --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
-      fi
+      --name "$BUCKET_NAME" \
+      --hide-headers 2>/dev/null || echo "")
+    if echo "$BUCKET_LIST_OUTPUT" | grep -q "$BUCKET_NAME"; then
+      BUCKET_EXISTS=1
     fi
 
-    echo "Bucket creation process completed."
+    if [ "$BUCKET_EXISTS" -eq 0 ]; then
+      echo "  → Bucket $BUCKET_NAME does not exist, creating..."
+      if influx bucket create \
+        --name "$BUCKET_NAME" \
+        --org "$BUCKET_ORG" \
+        --token "$BUCKET_TOKEN" \
+        --host "$INFLUXDB_HOST_URL" \
+        --retention "$BUCKET_RETENTION" \
+        --shard-group-duration "$BUCKET_SHARD_DURATION" 2>/dev/null; then
+        echo "  ✓ Successfully created bucket: $BUCKET_NAME"
+        SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+      else
+        echo "  ✗ Failed to create bucket: $BUCKET_NAME"
+        FAILED_COUNT=$((FAILED_COUNT + 1))
+      fi
+    else
+      echo "  → Bucket $BUCKET_NAME already exists, skipping creation."
+      SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+    fi
+    {{- end }}
 
-    # List all buckets to verify
-    echo "Current buckets in organization $ORG:"
+    echo ""
+    echo "=========================================="
+    echo "Bucket creation summary:"
+    echo "  Successfully created: $SUCCESS_COUNT"
+    echo "  Already existed: $SKIPPED_COUNT"
+    echo "  Failed: $FAILED_COUNT"
+    echo "=========================================="
+    {{- else }}
+    echo "No buckets configured in bucketbuild.buckets list."
+    {{- end }}
+
+    echo ""
+    echo "Listing all buckets for verification:"
+    {{- if .Values.customer.dataservice.influxdb2.bucketbuild.buckets }}
+    {{- range $bucket := .Values.customer.dataservice.influxdb2.bucketbuild.buckets }}
+    echo "--- Buckets in organization: {{ $bucket.organization }} ---"
     influx bucket list \
-      --org "$ORG" \
-      --token "$TOKEN" \
-      --host "$INFLUXDB_HOST_URL"
+      --org "{{ $bucket.organization }}" \
+      --token "{{ $bucket.token }}" \
+      --host "$INFLUXDB_HOST_URL" 2>/dev/null || echo "  Failed to list buckets for org: {{ $bucket.organization }}"
+    echo ""
+    {{- end }}
+    {{- end }}
 {{- end }}
