@@ -1,0 +1,418 @@
+{{/* Task ConfigMap for automated Flux task creation */}}
+{{- $bucket := .Values.customer.dataservice.influxdb2.adminUser.bucket | default "xnet_result" }}
+{{- $target_bucket := .Values.customer.dataservice.influxdb2.tasks.target_bucket | default "xnet_usage" }}
+{{- $agg_measurement := "aggregated_metrics" }}
+{{- $every := .Values.customer.dataservice.influxdb2.tasks.every | default "1m" }}
+{{- $offset := .Values.customer.dataservice.influxdb2.tasks.offset | default "1m" }}
+{{- $range_step := .Values.customer.dataservice.influxdb2.tasks.range_step | default "-5m" }}
+{{- $window_step := .Values.customer.dataservice.influxdb2.tasks.window_step | default "1m" }}
+{{- $dimension_key := .Values.customer.dataservice.influxdb2.tasks.dimension_key | default "cluster" }}
+{{- if .Values.customer.dataservice.influxdb2.tasks.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-influxdb-tasks
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: influxdb-tasks
+data:
+  # --------------------------------------------------------------------------
+  # Task 1: Memory 使用率聚合任务
+  # --------------------------------------------------------------------------
+  memory-agg-1m.flux: |
+    import "array"
+    import "math"
+    import "influxdata/influxdb/schema"
+
+    option task = {name: "memory_usage", every: {{ $every }}, offset: {{ $offset }}}
+
+    bucket_name = "{{ $bucket }}"
+    range_step = {{ $range_step }}
+    window_step = {{ $window_step }}
+    dimension_key = "{{ $dimension_key }}"
+
+    target_bucket = "{{ $target_bucket }}"
+    target_measurement = "mem_usage"
+    target_field = "memory_usage_percent"
+
+    TestMeasurements =
+        schema.measurements(bucket: bucket_name)
+            |> sort()
+            |> filter(fn: (r) => r._value =~ /cluster/)
+
+    allTestMeasurements =
+        TestMeasurements
+            |> tableFind(fn: (key) => true)
+            |> getColumn(column: "_value")
+
+    getMemoryUsageSingle = (measurement_name) => {
+        filterAndAggregate = (field_name) => {
+            return
+                from(bucket: bucket_name)
+                    |> range(start: range_step)
+                    |> filter(fn: (r) => r._measurement == measurement_name)
+                    |> filter(fn: (r) => r._field == field_name)
+                    |> aggregateWindow(every: window_step, fn: last, createEmpty: false)
+                    |> group(columns: ["_time", dimension_key])
+        }
+
+        mem_total = filterAndAggregate(field_name: "node_memory_MemTotal_bytes")
+        mem_available = filterAndAggregate(field_name: "node_memory_MemAvailable_bytes")
+
+        // 🚩 先求每个 cluster 的总和（Σ）
+        mem_total_sum =
+            mem_total
+                |> group(columns: ["_time"])
+                |> sum(column: "_value")
+        mem_available_sum =
+            mem_available
+                |> group(columns: ["_time"])
+                |> sum(column: "_value")
+
+        // 🚩 再 join 并计算整体比例
+        return
+            join(tables: {total: mem_total_sum, available: mem_available_sum}, on: ["_time"])
+                |> map(
+                    fn: (r) =>
+                        ({
+                            _time: r._time,
+                            cluster: measurement_name,
+                            _measurement: measurement_name,
+                            memory_usage: (1.0 - r._value_available / r._value_total) * 100.0,
+                        }),
+                )
+    }
+
+    memory_query_streams =
+        array.map(arr: allTestMeasurements, fn: (x) => getMemoryUsageSingle(measurement_name: x))
+
+    union(tables: memory_query_streams)
+        |> map(
+            fn: (r) =>
+                ({
+                    _time: r._time,
+                    _value: r.memory_usage,
+                    _measurement: target_measurement,
+                    _field: target_field,
+                    cluster: r.cluster,
+                    source_measurement: r._measurement,
+                }),
+        )
+        |> to(bucket: target_bucket)
+
+  # --------------------------------------------------------------------------
+  # Task 2: CPU 使用率聚合任务
+  # --------------------------------------------------------------------------
+  cpu-agg-1m.flux: |
+    import "array"
+    import "math"
+    import "influxdata/influxdb/schema"
+
+    option task = {name: "cpu_task", every: {{ $every }}, offset: {{ $offset }}}
+
+    bucket_name = "{{ $bucket }}"
+    range_step = {{ $range_step }}
+    window_step = {{ $window_step }}
+    dimension_key = "{{ $dimension_key }}"
+
+    target_bucket = "{{ $target_bucket }}"
+    target_measurement = "cpu_usage"
+    target_field = "cpu_usage_percent"
+
+    // -----------------------------------------------------------
+    // 获取所有 measurement（一般每个集群一条）
+    // -----------------------------------------------------------
+    TestMeasurements =
+        schema.measurements(bucket: bucket_name)
+            |> sort()
+            |> filter(fn: (r) => r._value =~ /cluster/)
+
+    allTestMeasurements =
+        TestMeasurements
+            |> tableFind(fn: (key) => true)
+            |> getColumn(column: "_value")
+
+    // -----------------------------------------------------------
+    // 计算单个 measurement 的集群 CPU 使用率（PromQL 等价）
+    // -----------------------------------------------------------
+    getCPUUsage = (measurement_name) => {
+        // 步骤 1️⃣: 读取 CPU counter 数据并求导
+        cpu =
+            from(bucket: bucket_name)
+                |> range(start: range_step)
+                |> filter(
+                    fn: (r) =>
+                        r._measurement == measurement_name and r._field == "node_cpu_seconds_total",
+                )
+                |> aggregateWindow(every: window_step, fn: mean, createEmpty: false)
+                |> derivative(unit: 1s, nonNegative: true)
+
+        // 步骤 2️⃣: 求 Σ(idle) 与 Σ(total)
+        cpu_idle =
+            cpu
+                |> filter(fn: (r) => r.mode == "idle")
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        cpu_total =
+            cpu
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        // 步骤 3️⃣: join 并计算使用率：1 - idle/total
+        return
+            join(tables: {idle: cpu_idle, total: cpu_total}, on: ["_time", dimension_key])
+                |> map(
+                    fn: (r) =>
+                        ({
+                            _time: r._time,
+                            cluster: r.cluster,
+                            _measurement: measurement_name,
+                            cpu_usage: (1.0 - r._value_idle / r._value_total) * 100.0,
+                        }),
+                )
+    }
+
+    // -----------------------------------------------------------
+    // 多 measurement 计算与合并
+    // -----------------------------------------------------------
+    cpu_query_streams = array.map(arr: allTestMeasurements, fn: (x) => getCPUUsage(measurement_name: x))
+
+    union(tables: cpu_query_streams)
+        |> map(
+            fn: (r) =>
+                ({
+                    _time: r._time,
+                    _value: r.cpu_usage,
+                    _measurement: target_measurement,
+                    _field: target_field,
+                    cluster: r.cluster,
+                    source_measurement: r._measurement,
+                }),
+        )
+        |> to(bucket: target_bucket)
+
+  # --------------------------------------------------------------------------
+  # Task 3: 磁盘使用率聚合任务
+  # --------------------------------------------------------------------------
+  disk-usage-1m.flux: |
+    import "array"
+    import "influxdata/influxdb/schema"
+
+    option task = {name: "disk_usage", every: {{ $every }}, offset: {{ $offset }}}
+
+    bucket_name = "{{ $bucket }}"
+    target_bucket = "{{ $target_bucket }}"
+    range_step = {{ $range_step }}
+    window_step = {{ $window_step }}
+
+    dimension_key = "{{ $dimension_key }}"
+    target_measurment = "disk_usage"
+    target_filed = "disk_usage_percent"
+
+    TestMeasurements =
+        schema.measurements(bucket: bucket_name)
+            |> sort()
+            |> filter(fn: (r) => r._value =~ /cluster/)
+
+    allTestMeasurements =
+        TestMeasurements
+            |> tableFind(fn: (key) => true)
+            |> getColumn(column: "_value")
+
+    getClusterDiskUsage = (measurement_name) => {
+        // total bytes of valid filesystems
+        total =
+            from(bucket: bucket_name)
+                |> range(start: range_step)
+                |> filter(
+                    fn: (r) =>
+                        r._measurement == measurement_name and r._field == "node_filesystem_size_bytes"
+                            and
+                            r.fstype !~ /tmpfs|ramfs|overlay|cgroup|sysfs|proc|devpts|squashfs/,
+                )
+                |> aggregateWindow(every: window_step, fn: last, createEmpty: false)
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        // available bytes of valid filesystems
+        avail =
+            from(bucket: bucket_name)
+                |> range(start: range_step)
+                |> filter(
+                    fn: (r) =>
+                        r._measurement == measurement_name and r._field == "node_filesystem_avail_bytes"
+                            and
+                            r.fstype !~ /tmpfs|ramfs|overlay|cgroup|sysfs|proc|devpts|squashfs/,
+                )
+                |> aggregateWindow(every: window_step, fn: last, createEmpty: false)
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        // join and compute usage ratio
+        return
+            join(tables: {total: total, avail: avail}, on: ["_time", dimension_key])
+                |> map(
+                    fn: (r) =>
+                        ({
+                            _time: r._time,
+                            cluster: r.cluster,
+                            _measurement: measurement_name,
+                            disk_usage:
+                                if r._value_total <= 0.0 then
+                                    0.0
+                                else
+                                    (1.0 - r._value_avail / r._value_total) * 100.0,
+                        }),
+                )
+    }
+
+    cluster_disk_streams =
+        array.map(arr: allTestMeasurements, fn: (x) => getClusterDiskUsage(measurement_name: x))
+
+    union(tables: cluster_disk_streams)
+        |> map(
+            fn: (r) =>
+                ({
+                    _time: r._time,
+                    _measurement: target_measurment,
+                    // ✅ 保持你原本定义
+                    _field: target_filed,
+                    // ✅ 保持你原本字段名
+                    _value: r.disk_usage,
+                    cluster: r.cluster,
+                    source_measurement: r._measurement,
+                }),
+        )
+        |> to(bucket: target_bucket)
+
+  # --------------------------------------------------------------------------
+  # Task 4: 网络流量聚合任务
+  # --------------------------------------------------------------------------
+  net-usage-1m.flux: |
+    import "array"
+    import "math"
+    import "influxdata/influxdb/schema"
+
+    option task = {name: "net_usage", every: {{ $every }}, offset: {{ $offset }}}
+
+    // -------------------------------
+    // 基本配置（保持不变）
+    // -------------------------------
+    bucket_name = "{{ $bucket }}"
+    target_bucket = "{{ $target_bucket }}"
+    target_measurement = "net_total"
+    target_field = "total_bytes_per_sec"
+
+    range_step = {{ $range_step }}
+    window_step = {{ $window_step }}
+    dimension_key = "{{ $dimension_key }}"
+
+    TestMeasurements =
+        schema.measurements(bucket: bucket_name)
+            |> sort()
+            |> filter(fn: (r) => r._value =~ /cluster/)
+
+    allTestMeasurements =
+        TestMeasurements
+            |> tableFind(fn: (key) => true)
+            |> getColumn(column: "_value")
+
+    getNetTotalSingle = (measurement_name) => {
+        // ---------------------------
+        // 1) 接收流量（严格模拟 Prometheus rate）
+        // ---------------------------
+        net_in =
+            from(bucket: bucket_name)
+                |> range(start: range_step)
+                |> filter(
+                    fn: (r) =>
+                        r._measurement == measurement_name and r._field
+                            ==
+                            "node_network_receive_bytes_total" and r.device !~ /lo|docker.*|cni.*|br.*/,
+                )
+                // 在每个物理序列上单独计算 derivative（device + instance + measurement + cluster）
+                |> group(columns: ["device", "instance", "_measurement", dimension_key])
+                |> sort(columns: ["_time"], desc: false)
+                |> unique(column: "_time")
+                // 去重相同时刻点，防止重复采样
+                |> derivative(unit: 1s, nonNegative: true)
+                // 等价于 rate()
+                // 将每个 device 的速率在窗口内做平均（类似 rate 的平滑）
+                |> aggregateWindow(every: window_step, fn: mean, createEmpty: false)
+                // 汇总到 cluster 级别，把所有 device 的平均速率相加
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        // ---------------------------
+        // 2) 发送流量（同上）
+        // ---------------------------
+        net_out =
+            from(bucket: bucket_name)
+                |> range(start: range_step)
+                |> filter(
+                    fn: (r) =>
+                        r._measurement == measurement_name and r._field
+                            ==
+                            "node_network_transmit_bytes_total" and r.device
+                            !~
+                            /lo|docker.*|cni.*|br.*/,
+                )
+                |> group(columns: ["device", "instance", "_measurement", dimension_key])
+                |> sort(columns: ["_time"], desc: false)
+                |> unique(column: "_time")
+                |> derivative(unit: 1s, nonNegative: true)
+                |> aggregateWindow(every: window_step, fn: mean, createEmpty: false)
+                |> group(columns: ["_time", dimension_key])
+                |> sum(column: "_value")
+
+        // ---------------------------
+        // 3) 合并入/出并返回集群级速率
+        // ---------------------------
+        return
+            join(tables: {in: net_in, out: net_out}, on: ["_time", dimension_key])
+                |> map(
+                    fn: (r) =>
+                        ({
+                            _time: r._time,
+                            cluster: r.cluster,
+                            _measurement: measurement_name,
+                            net_total_bytes_per_sec: r._value_in + r._value_out,
+                        }),
+                )
+    }
+
+    // -------------------------------
+    // 执行所有 measurement 并写入结果（保持不变）
+    // -------------------------------
+    net_query_streams =
+        array.map(arr: allTestMeasurements, fn: (x) => getNetTotalSingle(measurement_name: x))
+
+    union(tables: net_query_streams)
+        // 转换为目标 schema（保持不变）
+        |> map(
+            fn: (r) =>
+                ({
+                    _time: r._time,
+                    _value: r.net_total_bytes_per_sec,
+                    // 聚合值作为 _value
+                    _measurement: target_measurement,
+                    // 新 measurement 名称
+                    _field: target_field,
+                    // 新字段名
+                    cluster: r.cluster,
+                    source_measurement: r._measurement,
+                }),
+        )
+        // 写入目标桶（保持不变）
+        |> to(bucket: target_bucket)
+
+  # --------------------------------------------------------------------------
+  # 扩展点: 允许通过 values.yaml 添加自定义 Task
+  # --------------------------------------------------------------------------
+  {{- range $key, $value := .Values.customer.dataservice.influxdb2.tasks.custom }}
+  {{ $key }}: |
+{{ $value | indent 4 }}
+  {{- end }}
+{{- end }}

@@ -551,7 +551,7 @@ metric:
       apiserverConfig: {}
       additionalArgs: []
       scrapeFailureLogFile: ""
-      scrapeInterval: "5s"
+      scrapeInterval: "60s"
       scrapeTimeout: ""
       scrapeClasses: []
       podTargetLabels: []
@@ -2852,25 +2852,47 @@ customer:
       # enabled: false
       resources:
         limits:
-          cpu: "2"
-          memory: "2Gi"
+          cpu: "10"
+          memory: "14Gi"
         requests:
-          cpu: "1"
-          memory: "1Gi"
+          cpu: "8"
+          memory: "6Gi"
       config:
         global_tags:
           cluster: "my-cluster"
-          cluster_id: "test-id"
+          # cluster_id: "test-id"
           # 必须是influxdb的可以接受的端口，使用serveless的方式配置 格式为<service-name>.<namespace>.svc.cluster.local.<port>
-          output: "http://influxdb2.ob.svc.cluster.local:8086"
+          # output: "http://influxdb2.ob.svc.cluster.local:8086"
+          output: "http://10.2.0.48:31521"
     influxdb2:
-      enabled: false
-      # enabled: true
+      # enabled: false
+      enabled: true
       adminUser:
         organization: "influxdata"
-        bucket: "xnet"
+        bucket: "xnet_result"
         user: "admin"
         password: "xnetadmin123"
+        token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
+        retention_policy: "30d"
+        storageCacheMaxMemorySize: "4294967296"
+        storageCacheSnapshotMemorySize: "536870912"
+        storageCacheSnapshotWriteColdDuration: "5m"
+        storageTsmUseMadvWillneed: "true"
+        storageCompactFullWriteColdDuration: "2h0m0s"
+        storageCompactThroughputBurst: "209715200"
+        storageWalFsyncDelay: "100ms"
+        queryMaxMemoryBytes: "16106127360"
+        storageTsmUseMadvWillneed: "true"
+        storageSeriesIdSetCacheSize: "1000"
+        queryConcurrency: "0"
+      bucketbuild:
+        enabled: false
+        retention: "30d"
+        shardGroupDuration: "72h"
+        description: "xnet_test"
+        name: "xnet_test"
+        id: "xnet_test"
+        organization: "influxdata"
         token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
       service:
         type: NodePort
@@ -2879,8 +2901,18 @@ customer:
         nodePort: 31521
       resources:
         limits:
-          cpu: "6"
-          memory: "14Gi"
+          cpu: "8"
+          memory: "20Gi"
         requests:
-          cpu: "4"
-          memory: "8Gi"
+          cpu: "6"
+          memory: "12Gi"
+      tasks:
+        enabled: true
+        # enabled: false
+        every: 1m
+        offset: 1m
+        range_step: -5m
+        window_step: 1m
+        dimension_key: "cluster"
+        target_bucket: "xnet_usage"
+    

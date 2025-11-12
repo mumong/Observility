@@ -1,0 +1,109 @@
+{{/* ConfigMap for bucket creation scripts */}}
+{{- if and .Values.customer.dataservice.influxdb2.enabled .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "monitoring-stack.fullname" . }}-influxdb-buckets
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring-stack.labels" . | nindent 4 }}
+    app.kubernetes.io/component: influxdb-buckets
+data:
+  create-buckets.sh: |
+    #!/bin/sh
+    set -e
+
+    INFLUXDB_HOST_URL="{{ include "monitoring-stack.influxdbURL" . }}"
+    ORG="{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
+    TOKEN="{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
+    BUCKET_BUILD_ENABLED="{{ .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}"
+
+    echo "Waiting for InfluxDB to be ready at $INFLUXDB_HOST_URL..."
+    RETRY_COUNT=0
+    MAX_RETRIES=60
+
+    # Wait for InfluxDB to be ready
+    while ! wget -q --spider --timeout=3 "$INFLUXDB_HOST_URL/health" 2>/dev/null; do
+      if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "Error: InfluxDB service is not ready after $((MAX_RETRIES * 5)) seconds. Exiting."
+        exit 1
+      fi
+      echo "InfluxDB not ready. Retrying in 5 seconds... (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+      sleep 5
+      RETRY_COUNT=$((RETRY_COUNT + 1))
+    done
+
+    echo "InfluxDB is ready."
+
+    # Check if bucket build is enabled
+    if [ "$BUCKET_BUILD_ENABLED" = "true" ]; then
+      echo "Bucket build is enabled. Creating bucket..."
+    else
+      echo "Bucket build is disabled. Skipping bucket creation."
+      echo "Set bucketbuild.enabled: true in configuration to enable bucket creation."
+      exit 0
+    fi
+
+    # Create bucket from bucketbuild configuration
+    echo "Creating bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} with retention {{ .Values.customer.dataservice.influxdb2.bucketbuild.retention }} and shard duration {{ .Values.customer.dataservice.influxdb2.bucketbuild.shardGroupDuration }}"
+
+    # Check if bucket already exists
+    BUCKET_EXISTS=$(influx bucket list \
+      --org "$ORG" \
+      --token "$TOKEN" \
+      --host "$INFLUXDB_HOST_URL" \
+      --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
+      --hide-headers | wc -l)
+
+    if [ "$BUCKET_EXISTS" -eq 0 ]; then
+      echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} does not exist, creating..."
+      influx bucket create \
+        --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
+        --org "$ORG" \
+        --token "$TOKEN" \
+        --host "$INFLUXDB_HOST_URL" \
+        --retention "{{ .Values.customer.dataservice.influxdb2.bucketbuild.retention }}" \
+        --shard-group-duration "{{ .Values.customer.dataservice.influxdb2.bucketbuild.shardGroupDuration }}" \
+        {{- if .Values.customer.dataservice.influxdb2.bucketbuild.description }}--description "{{ .Values.customer.dataservice.influxdb2.bucketbuild.description }}"{{- end }}
+
+      if [ $? -eq 0 ]; then
+        echo "Successfully created bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
+      else
+        echo "Failed to create bucket: {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
+        exit 1
+      fi
+    else
+      echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} already exists, checking configuration..."
+
+      # Get bucket details to check if update is needed
+      BUCKET_ID=$(influx bucket list \
+        --org "$ORG" \
+        --token "$TOKEN" \
+        --host "$INFLUXDB_HOST_URL" \
+        --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}" \
+        --hide-headers | awk '{print $1}')
+
+      if [ -n "$BUCKET_ID" ]; then
+        echo "Bucket {{ .Values.customer.dataservice.influxdb2.bucketbuild.name }} exists with ID: $BUCKET_ID"
+        echo "Note: This bucket was created by StatefulSet with default retention."
+        echo "If you need to update retention or shard duration, please delete and recreate bucket manually."
+
+        # Show current bucket details
+        echo "Current bucket details:"
+        influx bucket list \
+          --org "$ORG" \
+          --token "$TOKEN" \
+          --host "$INFLUXDB_HOST_URL" \
+          --name "{{ .Values.customer.dataservice.influxdb2.bucketbuild.name }}"
+      fi
+    fi
+
+    echo "Bucket creation process completed."
+
+    # List all buckets to verify
+    echo "Current buckets in organization $ORG:"
+    influx bucket list \
+      --org "$ORG" \
+      --token "$TOKEN" \
+      --host "$INFLUXDB_HOST_URL"
+{{- end }}
