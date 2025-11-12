@@ -2852,11 +2852,11 @@ customer:
       # enabled: false
       resources:
         limits:
-          cpu: "10"
-          memory: "14Gi"
+          cpu: "4"
+          memory: "8Gi"
         requests:
-          cpu: "8"
-          memory: "6Gi"
+          cpu: "2"
+          memory: "4Gi"
       config:
         global_tags:
           cluster: "final-test"
@@ -2891,11 +2891,6 @@ customer:
           - name: "xnet_usage"
             retention: "30d"
             shardGroupDuration: "24h"
-            organization: "influxdata"
-            token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
-          - name: "xnet_test-bucket"
-            retention: "30d"
-            shardGroupDuration: "72h"
             organization: "influxdata"
             token: "xAKhwOajomWrmraW7OWHo63GyGWNftJD"
           # 可以添加更多 bucket
