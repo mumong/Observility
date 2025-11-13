@@ -29,7 +29,29 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-           # 2. Create buckets if configured
+              # 启动 InfluxDB 主进程在后台
+              /entrypoint.sh influxd &
+              INFLUX_PID=$!
+
+              # 等待 InfluxDB 完全启动
+              INFLUXDB_HOST_URL="{{ include "monitoring-stack.influxdbURL" . }}"
+              RETRY_COUNT=0
+              MAX_RETRIES=60
+              echo "Waiting for InfluxDB to be ready at $INFLUXDB_HOST_URL..."
+
+              while ! wget -q --spider --timeout=3 "$INFLUXDB_HOST_URL/health" 2>/dev/null; do
+                if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+                  echo "Warning: InfluxDB not ready after 5 minutes, proceeding anyway..."
+                  break
+                fi
+                echo "InfluxDB not ready. Retrying in 5 seconds... (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+                sleep 5
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+              done
+
+              echo "InfluxDB is ready. Starting initialization process..."
+
+              # 2. Create buckets if configured
               {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
               if [ -f "/etc/influxdb/scripts/create-buckets.sh" ]; then
                 echo "Creating buckets..."
@@ -61,6 +83,9 @@ spec:
               {{- end }}
 
               echo "InfluxDB initialization process completed successfully."
+
+              # 等待 InfluxDB 主进程
+              wait $INFLUX_PID
           ports:
             - containerPort: 8086
               name: http
