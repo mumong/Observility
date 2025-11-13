@@ -2905,6 +2905,7 @@ customer:
         targetPort: 8086
         nodePort: 31521
       resources:
+        enabled: false
         limits:
           cpu: "8"
           memory: "20Gi"

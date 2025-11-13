@@ -39,7 +39,6 @@ data:
     TestMeasurements =
         schema.measurements(bucket: bucket_name)
             |> sort()
-            |> filter(fn: (r) => r._value =~ /cluster/)
 
     allTestMeasurements =
         TestMeasurements
@@ -126,7 +125,6 @@ data:
     TestMeasurements =
         schema.measurements(bucket: bucket_name)
             |> sort()
-            |> filter(fn: (r) => r._value =~ /cluster/)
 
     allTestMeasurements =
         TestMeasurements
@@ -214,7 +212,6 @@ data:
     TestMeasurements =
         schema.measurements(bucket: bucket_name)
             |> sort()
-            |> filter(fn: (r) => r._value =~ /cluster/)
 
     allTestMeasurements =
         TestMeasurements
@@ -312,7 +309,7 @@ data:
     TestMeasurements =
         schema.measurements(bucket: bucket_name)
             |> sort()
-            |> filter(fn: (r) => r._value =~ /cluster/)
+
 
     allTestMeasurements =
         TestMeasurements

@@ -26,6 +26,41 @@ spec:
         - name: influxdb2
           image: influxdb:2.7.4-alpine
           imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+           # 2. Create buckets if configured
+              {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
+              if [ -f "/etc/influxdb/scripts/create-buckets.sh" ]; then
+                echo "Creating buckets..."
+                /etc/influxdb/scripts/create-buckets.sh
+                echo "Bucket creation process completed."
+              fi
+              {{- end }}
+
+              # 3. Create tasks if configured
+              {{- if .Values.customer.dataservice.influxdb2.tasks.enabled }}
+              if [ -d "/etc/influxdb/tasks" ]; then
+                echo "Creating tasks..."
+                TASK_DIR="/etc/influxdb/tasks"
+                for FILE in $TASK_DIR/*.flux; do
+                  echo "Processing Task file: $FILE"
+
+                  # 创建/更新 Task
+                  influx task create --file $FILE \
+                    --org "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}" \
+                    --token "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}" \
+                    --host "{{ include "monitoring-stack.influxdbURL" . }}"
+
+                  if [ $? -ne 0 ]; then
+                    echo "Warning: Task creation for $FILE encountered an error but continuing..."
+                  fi
+                done
+                echo "Task initialization complete. New Measurement: aggregated_metrics"
+              fi
+              {{- end }}
+
+              echo "InfluxDB initialization process completed successfully."
           ports:
             - containerPort: 8086
               name: http
@@ -70,6 +105,7 @@ spec:
               value: {{ .Values.customer.dataservice.influxdb2.adminUser.storageSeriesIdSetCacheSize | quote }}
             - name: INFLUXD_QUERY_CONCURRENCY
               value: {{ .Values.customer.dataservice.influxdb2.adminUser.queryConcurrency | quote }}
+          {{- if .Values.customer.dataservice.influxdb2.resources.enabled }}
           resources:
             limits:
               cpu: {{ .Values.customer.dataservice.influxdb2.resources.limits.cpu | quote }}
@@ -77,13 +113,32 @@ spec:
             requests:
               cpu: {{ .Values.customer.dataservice.influxdb2.resources.requests.cpu | quote }}
               memory: {{ .Values.customer.dataservice.influxdb2.resources.requests.memory | quote }}
+          {{- end }}
           volumeMounts:
             - name: data
               mountPath: /var/lib/influxdb2
+            - name: task-config
+              mountPath: /etc/influxdb/tasks
+            {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
+            - name: bucket-scripts
+              mountPath: /etc/influxdb/scripts
+              readOnly: true
+            {{- end }}
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: {{ include "monitoring-stack.fullname" . }}-influxdb2
+        {{- if .Values.customer.dataservice.influxdb2.bucketbuild.enabled }}
+        - name: bucket-scripts
+          configMap:
+            name: {{ include "monitoring-stack.fullname" . }}-influxdb-buckets
+            defaultMode: 0755
+        {{- end }}
+        {{- if .Values.customer.dataservice.influxdb2.tasks.enabled }}
+        - name: task-config
+          configMap:
+            name: {{ include "monitoring-stack.fullname" . }}-influxdb-tasks
+        {{- end }}
       restartPolicy: Always
   volumeClaimTemplates:
     - metadata:
@@ -97,3 +152,4 @@ spec:
           requests:
             storage: "50Gi"
 {{- end }}
+
