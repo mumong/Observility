@@ -17,6 +17,94 @@ metadata:
     {{- include "monitoring-stack.labels" . | nindent 4 }}
     app.kubernetes.io/component: influxdb-tasks
 data:
+  create-tasks.sh: |
+    #!/bin/sh
+    set -e
+
+    INFLUXDB_HOST_URL="{{ include "monitoring-stack.influxdbURL" . }}"
+    TASK_ORG="{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}"
+    TASK_TOKEN="{{ .Values.customer.dataservice.influxdb2.adminUser.token }}"
+    TASK_DIR="/etc/influxdb/tasks"
+
+    echo "Waiting for InfluxDB to be ready at $INFLUXDB_HOST_URL..."
+    RETRY_COUNT=0
+    MAX_RETRIES=60
+
+    # Wait for InfluxDB to be ready
+    while ! wget -q --spider --timeout=3 "$INFLUXDB_HOST_URL/health" 2>/dev/null; do
+      if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "Error: InfluxDB service is not ready after $((MAX_RETRIES * 5)) seconds. Exiting."
+        exit 1
+      fi
+      echo "InfluxDB not ready. Retrying in 5 seconds... (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)"
+      sleep 5
+      RETRY_COUNT=$((RETRY_COUNT + 1))
+    done
+
+    echo "InfluxDB is ready."
+
+    echo "Starting task creation process..."
+    SUCCESS_COUNT=0
+    SKIPPED_COUNT=0
+    FAILED_COUNT=0
+
+    for FILE in $TASK_DIR/*.flux; do
+      if [ ! -f "$FILE" ]; then
+        continue
+      fi
+
+      echo ""
+      echo "Processing Task file: $FILE"
+
+      # 从 flux 文件中提取 task name
+      TASK_NAME=$(grep 'option task = {name:' "$FILE" 2>/dev/null | sed -n 's/.*name: "\([^"]*\)".*/\1/p' || echo "")
+      
+      if [ -z "$TASK_NAME" ]; then
+        echo "  ✗ Warning: Could not extract task name from $FILE, skipping..."
+        FAILED_COUNT=$((FAILED_COUNT + 1))
+        continue
+      fi
+
+      echo "  Task name: $TASK_NAME"
+
+      # 检查 task 是否已经存在
+      TASK_EXISTS=0
+      TASK_LIST_OUTPUT=$(influx task list \
+        --org "$TASK_ORG" \
+        --token "$TASK_TOKEN" \
+        --host "$INFLUXDB_HOST_URL" \
+        --hide-headers 2>/dev/null || echo "")
+      
+      if echo "$TASK_LIST_OUTPUT" | grep -q "$TASK_NAME"; then
+        TASK_EXISTS=1
+      fi
+
+      if [ "$TASK_EXISTS" -eq 1 ]; then
+        echo "  → Task '$TASK_NAME' already exists, skipping creation."
+        SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
+      else
+        echo "  → Task '$TASK_NAME' does not exist, creating..."
+        if influx task create --file "$FILE" \
+          --org "$TASK_ORG" \
+          --token "$TASK_TOKEN" \
+          --host "$INFLUXDB_HOST_URL" 2>/dev/null; then
+          echo "  ✓ Successfully created task: $TASK_NAME"
+          SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+        else
+          echo "  ✗ Failed to create task: $TASK_NAME"
+          FAILED_COUNT=$((FAILED_COUNT + 1))
+        fi
+      fi
+    done
+
+    echo ""
+    echo "=========================================="
+    echo "Task creation summary:"
+    echo "  Successfully created: $SUCCESS_COUNT"
+    echo "  Already existed: $SKIPPED_COUNT"
+    echo "  Failed: $FAILED_COUNT"
+    echo "=========================================="
+    
   # --------------------------------------------------------------------------
   # Task 1: Memory 使用率聚合任务
   # --------------------------------------------------------------------------
