@@ -62,23 +62,10 @@ spec:
 
               # 3. Create tasks if configured
               {{- if .Values.customer.dataservice.influxdb2.tasks.enabled }}
-              if [ -d "/etc/influxdb/tasks" ]; then
+              if [ -f "/etc/influxdb/tasks/create-tasks.sh" ]; then
                 echo "Creating tasks..."
-                TASK_DIR="/etc/influxdb/tasks"
-                for FILE in $TASK_DIR/*.flux; do
-                  echo "Processing Task file: $FILE"
-
-                  # 创建/更新 Task
-                  influx task create --file $FILE \
-                    --org "{{ .Values.customer.dataservice.influxdb2.adminUser.organization }}" \
-                    --token "{{ .Values.customer.dataservice.influxdb2.adminUser.token }}" \
-                    --host "{{ include "monitoring-stack.influxdbURL" . }}"
-
-                  if [ $? -ne 0 ]; then
-                    echo "Warning: Task creation for $FILE encountered an error but continuing..."
-                  fi
-                done
-                echo "Task initialization complete. New Measurement: aggregated_metrics"
+                /etc/influxdb/tasks/create-tasks.sh
+                echo "Task creation process completed."
               fi
               {{- end }}
 
@@ -163,6 +150,7 @@ spec:
         - name: task-config
           configMap:
             name: {{ include "monitoring-stack.fullname" . }}-influxdb-tasks
+            defaultMode: 0755
         {{- end }}
       restartPolicy: Always
   volumeClaimTemplates:
