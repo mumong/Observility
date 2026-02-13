@@ -2462,7 +2462,7 @@ tracing:
           user-password: '{{ if eq $.Values.tracing.global.storageEngine "clickhouse" }}{{ if $.Values.tracing.global.externalClickHouse.enabled }}{{ $.Values.tracing.global.externalClickHouse.password }}{{ else }}{{ .Values.tracing.global.password.clickhouse }}{{end}}{{ else }}{{ .Values.tracing.global.password.byconity }}{{ end }}'
           timeout: 60
         deepflow-app:
-          host: "{{ $.Release.Name }}-app"
+          host: "{{ $.Release.Name }}-deepflow-app"
           port: 20418
       ingester:
         ckdb:
@@ -2713,6 +2713,8 @@ tracing:
     kubernetesClusterId: 
     agentGroupID: 
     externalAgentHttpProxyPort: 38086
+    # 启用 Agent 的 Kubernetes API（用于 K8s 资源 watcher、replicaset 等）
+    kubernetesApiEnabled: true
     resources:
       limits:
         cpu: 1000m

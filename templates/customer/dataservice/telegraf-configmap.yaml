@@ -63,21 +63,4 @@ data:
       [inputs.prometheus.tagdrop]
         device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
 
-    # ########################################################
-    # # 额外的 Prometheus 数据源：cluster1-10
-    # # 所有数据都会输出到同一个 bucket（因为 namepass 被注释了）
-    # ########################################################
-    # {{- range $i := until 10 }}
-    #  [[inputs.prometheus]]
-    #    urls = [{{ include "monitoring-stack.prometheusURLs" $ }}]
-    #    metric_version = 2
-    #    interval = "30s"
-    #    timeout = "600s"
-    #    name_override = "cluster{{ add $i 1 }}"
-    #   taginclude = ["device","mode", "fstype", "instance","cpu","cluster","cluster_id"]
-    #   [inputs.prometheus.tags]
-    #     cluster = "cluster{{ add $i 1 }}"
-    #   [inputs.prometheus.tagdrop]
-    #     device = ["cali*", "veth*", "docker*", "br-*", "lo", "tunl*", "none", "shm", "sr0", "tmpfs"]
-    # {{- end }}
 {{- end }}
