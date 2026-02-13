@@ -106,6 +106,9 @@ kubernetesClusterId:
 agentGroupID:
 externalAgentHttpProxyPort: 38086
 
+# Enable Kubernetes API in agent (for K8s resource watcher, replicaset, etc.)
+kubernetesApiEnabled: true
+
 deepflowAgentConfig: 
   deepflow-agent.yaml: |
     {{- nindent 4 "controller-ips:" -}}
@@ -146,6 +149,7 @@ deepflowAgentConfig:
     {{- if .Values.controllerPort }}{{ nindent 4 "controller-port:" }} {{ .Values.controllerPort }}{{ end -}}
     {{- if .Values.clusterNAME }}{{ nindent 4 "kubernetes-cluster-name:" }} {{ .Values.clusterNAME }}{{ end -}}
     {{- if .Values.teamId }}{{ nindent 4 "team-id:" }} {{ .Values.teamId }}{{ end -}}
+    {{- if hasKey .Values "kubernetesApiEnabled" }}{{ nindent 4 "kubernetes-api-enabled:" }} {{ .Values.kubernetesApiEnabled }}{{ end -}}
 
 resources:
   limits:
