@@ -1003,6 +1003,25 @@ defaultDashboardsEditable: true
 dashboardsConfigMaps: {}
 #  default: ""
 
+## ====== Provisioned dashboard 可编辑 + 移除导致 no data 的变量 ======
+## 由 DeepFlow init 写入的 dashboard 默认为 Provisioned（只读），可通过本段控制：
+##
+## 控制方式：
+## - 关闭本功能（不修改 provider、不删变量）：设置 enabled: false
+## - 保留 Provisioned 但允许在 UI 里编辑：enabled: true，allowUiUpdates: true（推荐）
+## - 仅删变量、不强制可编辑：enabled: true，allowUiUpdates: false，配置 removeVariables
+##
+## 说明：Grafana 无法“取消”仪表盘来自 provisioning 的来源，只能通过 allowUiUpdates
+## 允许在界面中编辑；界面上的 “Provisioned” 标签可能仍在，但不影响编辑。
+dashboardProvisioning:
+  enabled: true
+  # 是否强制允许在 UI 中更新 provisioned dashboards（true=可编辑，false=保持只读）
+  allowUiUpdates: true
+  # 要从所有 dashboard 中移除的变量名（去掉后该变量不再出现，面板中若仍引用需手动改）
+  removeVariables:
+    - pod
+    - monitor
+
 ## Grafana's primary configuration
 ## NOTE: values in map will be converted to ini format
 ## ref: http://docs.grafana.org/installation/configuration/
