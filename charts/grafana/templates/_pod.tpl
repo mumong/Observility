@@ -330,6 +330,9 @@ initContainers:
 {{- with .Values.extraInitContainers }}
   {{- tpl (toYaml .) $root | nindent 2 }}
 {{- end }}
+{{- if and .Values.dashboardProvisioning .Values.dashboardProvisioning.enabled }}
+  {{- include "grafana.initFixDashboards" . | nindent 2 }}
+{{- end }}
 {{- if or .Values.image.pullSecrets .Values.global.imagePullSecrets }}
 imagePullSecrets:
   {{- include "grafana.imagePullSecrets" (dict "root" $root "imagePullSecrets" .Values.image.pullSecrets) | nindent 2 }}
