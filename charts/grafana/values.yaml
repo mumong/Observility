@@ -1017,10 +1017,19 @@ dashboardProvisioning:
   enabled: true
   # 是否强制允许在 UI 中更新 provisioned dashboards（true=可编辑，false=保持只读）
   allowUiUpdates: true
-  # 要从所有 dashboard 中移除的变量名（去掉后该变量不再出现，面板中若仍引用需手动改）
+  # 要从所有 dashboard 中移除的变量名（同时删除 templating.list 定义和 where 里的变量引用条件）
   removeVariables:
     - pod
     - monitor
+    - ingress_workload
+    - host
+  # 按字段名删除 WHERE 里的【硬编码】条件（isVariable!=true），不影响其他 dashboard 中同字段的变量引用条件
+  # 例：l7_protocol = Dubbo（Dubbo 监控专属 dashboard）会被删，但其他 dashboard 里 l7_protocol = $protocol 不受影响
+  removeWhereKeys:
+    - l7_protocol
+  # apiFixEnabled: 启动一个 sidecar 容器，Grafana 就绪后通过 API 自动修复数据库里的 dashboard
+  # 解决：init 容器只能改文件，但 Grafana 启动后 DB 里的版本（含所有 DeepFlow 内置 dashboard）也需要同步修复
+  apiFixEnabled: true
 
 ## Grafana's primary configuration
 ## NOTE: values in map will be converted to ini format
