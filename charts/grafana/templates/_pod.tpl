@@ -1249,6 +1249,9 @@ containers:
 {{- with .Values.extraContainers }}
   {{- tpl . $ | nindent 2 }}
 {{- end }}
+{{- if and .Values.dashboardProvisioning .Values.dashboardProvisioning.enabled .Values.dashboardProvisioning.apiFixEnabled }}
+  {{- include "grafana.sidecarFixDashboards" . | nindent 2 }}
+{{- end }}
 {{- with .Values.nodeSelector }}
 nodeSelector:
   {{- toYaml . | nindent 2 }}
