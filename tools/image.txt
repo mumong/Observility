@@ -1,0 +1,79 @@
+# Image Registry Migration Mapping
+# Rule: keep original image name intact, prepend xnet.registry.io:8443/observability/
+# Format: ORIGINAL_IMAGE -> NEW_IMAGE
+
+# === Main values.yaml (registry+repository pattern) ===
+quay.io/prometheus/alertmanager:v0.28.1 -> xnet.registry.io:8443/observability/prometheus/alertmanager:v0.28.1
+quay.io/prometheus/prometheus:v3.4.1 -> xnet.registry.io:8443/observability/prometheus/prometheus:v3.4.1
+quay.io/prometheus-operator/admission-webhook -> xnet.registry.io:8443/observability/prometheus-operator/admission-webhook
+registry.k8s.io/ingress-nginx/kube-webhook-certgen -> xnet.registry.io:8443/observability/ingress-nginx/kube-webhook-certgen
+quay.io/prometheus-operator/prometheus-operator:v0.83.0 -> xnet.registry.io:8443/observability/prometheus-operator/prometheus-operator:v0.83.0
+quay.io/prometheus-operator/prometheus-config-reloader:v0.83.0 -> xnet.registry.io:8443/observability/prometheus-operator/prometheus-config-reloader:v0.83.0
+quay.io/thanos/thanos:v0.38.0 -> xnet.registry.io:8443/observability/thanos/thanos:v0.38.0
+docker.io/busybox:latest -> xnet.registry.io:8443/observability/busybox:latest
+registry.k8s.io/kubectl -> xnet.registry.io:8443/observability/kubectl
+quay.io/thanos/thanos -> xnet.registry.io:8443/observability/thanos/thanos
+
+# === Main values.yaml (repository with full path) ===
+quay.io/sustainable_computing_io/kepler:release-0.8.0 -> xnet.registry.io:8443/observability/sustainable_computing_io/kepler:release-0.8.0
+quay.io/sustainable_computing_io/kepler_model_server:v0.7.12 -> xnet.registry.io:8443/observability/sustainable_computing_io/kepler_model_server:v0.7.12
+docker.elastic.co/elasticsearch/elasticsearch:8.5.1 -> xnet.registry.io:8443/observability/elasticsearch/elasticsearch:8.5.1
+docker.elastic.co/kibana/kibana:8.5.1 -> xnet.registry.io:8443/observability/kibana/kibana:8.5.1
+docker.elastic.co/beats/filebeat:8.5.1 -> xnet.registry.io:8443/observability/beats/filebeat:8.5.1
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/* -> xnet.registry.io:8443/observability/deepflow-ce/*
+registry.cn-beijing.aliyuncs.com/deepflow-ce/grafana -> xnet.registry.io:8443/observability/grafana
+
+# === charts/grafana/values.yaml ===
+docker.io/grafana/grafana -> xnet.registry.io:8443/observability/grafana/grafana
+docker.io/bats/bats:v1.4.1 -> xnet.registry.io:8443/observability/bats/bats:v1.4.1
+docker.io/curlimages/curl:8.9.1 -> xnet.registry.io:8443/observability/curlimages/curl:8.9.1
+alpine/git:latest -> xnet.registry.io:8443/observability/alpine/git:latest
+docker.io/library/busybox:1.31.1 -> xnet.registry.io:8443/observability/library/busybox:1.31.1
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/* -> xnet.registry.io:8443/observability/deepflow-ce/*
+quay.io/kiwigrid/k8s-sidecar:1.30.0 -> xnet.registry.io:8443/observability/kiwigrid/k8s-sidecar:1.30.0
+docker.io/grafana/grafana-image-renderer -> xnet.registry.io:8443/observability/grafana/grafana-image-renderer
+
+# === charts/grafana/templates/ ===
+python:3-alpine -> xnet.registry.io:8443/observability/python:3-alpine
+
+# === charts/kube-state-metrics/values.yaml ===
+registry.k8s.io/kube-state-metrics/kube-state-metrics -> xnet.registry.io:8443/observability/kube-state-metrics/kube-state-metrics
+quay.io/brancz/kube-rbac-proxy:v0.19.1 -> xnet.registry.io:8443/observability/brancz/kube-rbac-proxy:v0.19.1
+
+# === charts/prometheus-node-exporter/values.yaml ===
+quay.io/prometheus/node-exporter -> xnet.registry.io:8443/observability/prometheus/node-exporter
+quay.io/brancz/kube-rbac-proxy:v0.19.1 -> xnet.registry.io:8443/observability/brancz/kube-rbac-proxy:v0.19.1
+
+# === charts/clickhouse/values.yaml ===
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/clickhouse-server -> xnet.registry.io:8443/observability/clickhouse-server
+
+# === charts/mysql/values.yaml ===
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/mysql -> xnet.registry.io:8443/observability/mysql
+
+# === charts/deepflow-agent/values.yaml ===
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent -> xnet.registry.io:8443/observability/deepflow-agent
+
+# === charts/stella-agent-ce/values.yaml ===
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflowio-stella-agent-ce -> xnet.registry.io:8443/observability/deepflowio-stella-agent-ce
+
+# === charts/byconity/values.yaml ===
+registry.cn-hongkong.aliyuncs.com/deepflow-ce/byconity:1.0.0 -> xnet.registry.io:8443/observability/byconity:1.0.0
+foundationdb/fdb-kubernetes-operator:v1.9.0 -> xnet.registry.io:8443/observability/fdb-kubernetes-operator:v1.9.0
+gchq/hdfs:3.2.2 -> xnet.registry.io:8443/observability/hdfs:3.2.2
+
+# === charts/byconity/charts/fdb-operator/values.yaml ===
+foundationdb/fdb-kubernetes-operator:v1.9.0 -> xnet.registry.io:8443/observability/fdb-kubernetes-operator:v1.9.0
+foundationdb/foundationdb-kubernetes-sidecar -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
+foundationdb/foundationdb-kubernetes-sidecar:6.2.30-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:6.2.30-1
+foundationdb/foundationdb-kubernetes-sidecar:6.3.23-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:6.3.23-1
+foundationdb/foundationdb-kubernetes-sidecar:7.1.15-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:7.1.15-1
+
+# === charts/byconity/charts/hdfs/values.yaml ===
+alpine:3.10.2 -> xnet.registry.io:8443/observability/alpine:3.10.2
+gchq/hdfs:3.2.2 -> xnet.registry.io:8443/observability/hdfs:3.2.2
+
+# === Hardcoded template images ===
+docker.io/library/telegraf:1.32-alpine -> xnet.registry.io:8443/observability/telegraf:1.32-alpine
+influxdb:2.7.4-alpine -> xnet.registry.io:8443/observability/influxdb:2.7.4-alpine
+grafana/otel-lgtm:latest -> xnet.registry.io:8443/observability/grafana/otel-lgtm:latest
+xnet.registry.io:8443/apiserver/apiserver:v1.0 -> xnet.registry.io:8443/observability/apiserver:v1.0

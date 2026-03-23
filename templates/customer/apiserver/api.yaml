@@ -40,7 +40,7 @@ spec:
       {{- end }}
       containers:
       - name: api-server
-        image: xnet.registry.io:8443/apiserver/apiserver:v1.0
+        image: xnet.registry.io:8443/observability/apiserver:v1.0
         args: ["--release={{ .Release.Name }}","--namespace={{ .Release.Namespace }}"]
         imagePullPolicy: IfNotPresent
         ports:

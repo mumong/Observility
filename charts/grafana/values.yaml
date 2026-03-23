@@ -97,7 +97,7 @@ livenessProbe:
 
 image:
   # -- The Docker registry
-  registry: docker.io
+  registry: xnet.registry.io:8443/observability
   # -- Docker image repository
   repository: grafana/grafana
   # Overrides the Grafana image tag whose default is the chart appVersion
@@ -121,7 +121,7 @@ testFramework:
   # hookType: test
   image:
     # -- The Docker registry
-    registry: docker.io
+    registry: xnet.registry.io:8443/observability
     repository: bats/bats
     tag: "v1.4.1"
   imagePullPolicy: IfNotPresent
@@ -197,7 +197,7 @@ extraLabels: {}
 
 downloadDashboardsImage:
   # -- The Docker registry
-  registry: docker.io
+  registry: xnet.registry.io:8443/observability
   repository: curlimages/curl
   tag: 8.9.1
   sha: ""
@@ -427,7 +427,7 @@ extraInitContainers:
       mountPath: /etc/grafana/provisioning/datasources
 
   - name: fix-deepflow-datasource # 新增的容器，专门负责修改文件
-    image: "alpine/git:latest" # 使用一个包含 sed 工具的轻量级镜像，例如 alpine/git, busybox 等
+    image: "xnet.registry.io:8443/observability/alpine/git:latest" # 使用一个包含 sed 工具的轻量级镜像，例如 alpine/git, busybox 等
     imagePullPolicy: 'IfNotPresent'
     command: ["/bin/sh", "-c"]
     args:
@@ -556,7 +556,7 @@ initChownData:
   ##
   image:
     # -- The Docker registry
-    registry: docker.io
+    registry: xnet.registry.io:8443/observability
     repository: library/busybox
     tag: "1.31.1"
     sha: ""
@@ -1068,7 +1068,7 @@ global:
     ## ghcr Image repository address: ghcr.io/deepflowys/deepflow-ce
     ## Dockerhub Image repository address: deepflowce
     ## AliyunYun Image repository address: registry.cn-beijing.aliyuncs.com/deepflow-ce
-    repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce
+    repository: xnet.registry.io:8443/observability/deepflow-ce
     pullPolicy: IfNotPresent
     imagePullSecrets: []
   hostNetwork: false
@@ -1201,7 +1201,7 @@ smtp:
 sidecar:
   image:
     # -- The Docker registry
-    registry: quay.io
+    registry: xnet.registry.io:8443/observability
     repository: kiwigrid/k8s-sidecar
     tag: 1.30.0
     sha: ""
@@ -1657,7 +1657,7 @@ imageRenderer:
   renderingCallbackURL: ""
   image:
     # -- The Docker registry
-    registry: docker.io
+    registry: xnet.registry.io:8443/observability
     # image-renderer Image repository
     repository: grafana/grafana-image-renderer
     # image-renderer Image tag

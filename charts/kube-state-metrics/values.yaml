@@ -1,7 +1,7 @@
 # Default values for kube-state-metrics.
 prometheusScrape: false
 image:
-  registry: registry.k8s.io
+  registry: xnet.registry.io:8443/observability
   repository: kube-state-metrics/kube-state-metrics
   # If unset use v + .Charts.appVersion
   tag: ""
@@ -104,7 +104,7 @@ rbac:
 kubeRBACProxy:
   enabled: false
   image:
-    registry: quay.io
+    registry: xnet.registry.io:8443/observability
     repository: brancz/kube-rbac-proxy
     tag: v0.19.1
     sha: ""

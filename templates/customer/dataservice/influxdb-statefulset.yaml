@@ -24,7 +24,7 @@ spec:
       serviceAccountName: {{ include "monitoring-stack.serviceAccountName" . }}
       containers:
         - name: influxdb2
-          image: influxdb:2.7.4-alpine
+          image: xnet.registry.io:8443/observability/influxdb:2.7.4-alpine
           imagePullPolicy: IfNotPresent
           command: ["/bin/sh", "-c"]
           args:

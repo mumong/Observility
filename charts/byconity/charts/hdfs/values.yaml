@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 alpine:
-  repository: alpine #if your machine is amd64.please use amd64/alpine
+  repository: xnet.registry.io:8443/observability/alpine #if your machine is amd64.please use amd64/alpine
   tag: 3.10.2
   imagePullPolicy: IfNotPresent
 namenode:
-  repository: gchq/hdfs
+  repository: xnet.registry.io:8443/observability/hdfs
   tag: 3.2.2 # managed version
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -50,7 +50,7 @@ namenode:
   # hadoop.heapsize.min: 128m
 datanode:
   nodeCount: 3
-  repository: gchq/hdfs
+  repository: xnet.registry.io:8443/observability/hdfs
   tag: 3.2.2 # managed version
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -83,7 +83,7 @@ datanode:
   # hadoop.heapsize.min: 128m
 shell:
   enabled: true
-  repository: gchq/hdfs
+  repository: xnet.registry.io:8443/observability/hdfs
   tag: 3.2.2 # managed version
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []

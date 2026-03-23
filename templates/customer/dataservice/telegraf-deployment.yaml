@@ -23,7 +23,7 @@ spec:
       serviceAccountName: {{ include "monitoring-stack.serviceAccountName" . }}
       containers:
         - name: telegraf
-          image: docker.io/library/telegraf:1.32-alpine
+          image: xnet.registry.io:8443/observability/telegraf:1.32-alpine
           imagePullPolicy: IfNotPresent
           env:
             - name: CLUSTER_NAME

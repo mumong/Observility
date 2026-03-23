@@ -17,7 +17,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/byconity
+  repository: xnet.registry.io:8443/observability/byconity
   tag: 1.0.0
   imagePullPolicy: IfNotPresent
 
@@ -397,14 +397,14 @@ fdb-operator:
       cpu: 1
       memory: 512Mi
   image:
-    repository: foundationdb/fdb-kubernetes-operator
+    repository: xnet.registry.io:8443/observability/fdb-kubernetes-operator
     tag: v1.9.0
     pullPolicy: IfNotPresent
 
 hdfs:
   enabled: false
   namenode:
-    repository: gchq/hdfs
+    repository: xnet.registry.io:8443/observability/hdfs
     tag: 3.2.2 # managed version
     resources: {}
     nodeSelector: {}
@@ -423,7 +423,7 @@ hdfs:
     # hadoop.heapsize.min: 128m
   datanode:
     nodeCount: 3
-    repository: gchq/hdfs
+    repository: xnet.registry.io:8443/observability/hdfs
     tag: 3.2.2 # managed version
     resources: {}
     nodeSelector: {}
@@ -446,7 +446,7 @@ hdfs:
       dfs.namenode.datanode.registration.ip-hostname-check: "false"
   shell:
     enabled: true
-    repository: gchq/hdfs
+    repository: xnet.registry.io:8443/observability/hdfs
     tag: 3.2.2 # managed version
     imagePullPolicy: IfNotPresent
     imagePullSecrets: []
