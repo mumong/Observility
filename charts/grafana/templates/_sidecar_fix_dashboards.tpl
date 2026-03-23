@@ -5,7 +5,7 @@
 */}}
 {{- define "grafana.sidecarFixDashboards" -}}
 - name: fix-grafana-db-dashboards
-  image: python:3-alpine
+  image: xnet.registry.io:8443/observability/python:3-alpine
   imagePullPolicy: IfNotPresent
   env:
   - name: REMOVE_VARS

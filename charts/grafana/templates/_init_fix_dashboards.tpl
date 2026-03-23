@@ -4,7 +4,7 @@
 */}}
 {{- define "grafana.initFixDashboards" -}}
 - name: fix-grafana-dashboards-provisioning
-  image: python:3-alpine
+  image: xnet.registry.io:8443/observability/python:3-alpine
   imagePullPolicy: IfNotPresent
   env:
   - name: REMOVE_VARS

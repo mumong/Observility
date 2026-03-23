@@ -18,7 +18,7 @@ tkeSidecar: false
 daemonsetWatchDisabled: false  # Whether to disable the watch for Agent configured through daemonset
 
 image:
-  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent
+  repository: xnet.registry.io:8443/observability/deepflow-agent
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: v7.0

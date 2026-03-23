@@ -16,7 +16,7 @@ hostNetwork: "false"
 dnsPolicy: "ClusterFirst"
 podManagementPolicy: "OrderedReady"
 image:
-  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/clickhouse-server
+  repository: xnet.registry.io:8443/observability/clickhouse-server
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "23.10"

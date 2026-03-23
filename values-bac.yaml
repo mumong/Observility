@@ -265,7 +265,7 @@ metric:
       podMetadata: {}
       serviceName:
       image:
-        registry: xnet.registry.io:8443/observability
+        registry: quay.io
         repository: prometheus/alertmanager
         tag: v0.28.1
         sha: ""
@@ -566,7 +566,7 @@ metric:
       otlp: {}
       serviceName:
       image:
-        registry: xnet.registry.io:8443/observability
+        registry: quay.io
         repository: prometheus/prometheus
         tag: v3.4.1
         sha: ""
@@ -780,7 +780,7 @@ metric:
         podLabels: {}
         podAnnotations: {}
         image:
-          registry: xnet.registry.io:8443/observability
+          registry: quay.io
           repository: prometheus-operator/admission-webhook
           tag: "v0.83.0"  # 明确指定版本，而不是依赖 .Chart.AppVersion
           sha: ""
@@ -830,7 +830,7 @@ metric:
       patch:
         enabled: true
         image:
-          registry: xnet.registry.io:8443/observability
+          registry: registry.k8s.io
           repository: ingress-nginx/kube-webhook-certgen
           tag: v1.5.4
           sha: ""
@@ -980,21 +980,21 @@ metric:
       updatePolicy:
         updateMode: Auto
     image:
-      registry: xnet.registry.io:8443/observability
+      registry: quay.io
       repository: prometheus-operator/prometheus-operator
       tag: "v0.83.0"  # 明确指定版本，而不是依赖 .Chart.AppVersion
       sha: ""
       pullPolicy: IfNotPresent
     prometheusConfigReloader:
       image:
-        registry: xnet.registry.io:8443/observability
+        registry: quay.io
         repository: prometheus-operator/prometheus-config-reloader
         tag: "v0.83.0"  # 明确指定版本，而不是依赖 .Chart.AppVersion
         sha: ""
       enableProbe: false
       resources: {}
     thanosImage:
-      registry: xnet.registry.io:8443/observability
+      registry: quay.io
       repository: thanos/thanos
       tag: v0.38.0
       sha: ""
@@ -1051,13 +1051,13 @@ metric:
       forceConflicts: false
       image:
         busybox:
-          registry: xnet.registry.io:8443/observability
+          registry: docker.io
           repository: busybox
           tag: "latest"
           sha: ""
           pullPolicy: IfNotPresent
         kubectl:
-          registry: xnet.registry.io:8443/observability
+          registry: registry.k8s.io
           repository: kubectl
           tag: ""
           sha: ""
@@ -1598,7 +1598,7 @@ metric:
         podMetadata: {}
         serviceName:
         image:
-          registry: xnet.registry.io:8443/observability
+          registry: quay.io
           repository: thanos/thanos
           tag: v0.38.0
           sha: ""
@@ -1670,7 +1670,7 @@ metric:
     nameOverride: "kepler"
     fullnameOverride: ""
     image:
-      repository: "xnet.registry.io:8443/observability/sustainable_computing_io/kepler"
+      repository: "quay.io/sustainable_computing_io/kepler"
       tag: "release-0.8.0"
       pullPolicy: IfNotPresent
     imagePullSecrets: []
@@ -1750,7 +1750,7 @@ metric:
       nameOverride: ""
       fullNameOverride: ""
       image:
-        repository: "xnet.registry.io:8443/observability/sustainable_computing_io/kepler_model_server"
+        repository: "quay.io/sustainable_computing_io/kepler_model_server"
         tag: "v0.7.12"
         pullPolicy: IfNotPresent
       replicas: 1
@@ -1806,7 +1806,7 @@ logging:
       password: "" # generated randomly if not defined
     secretMounts: []
     hostAliases: []
-    image: "xnet.registry.io:8443/observability/elasticsearch/elasticsearch"
+    image: "docker.elastic.co/elasticsearch/elasticsearch"
     imageTag: "8.5.1"
     imagePullPolicy: "IfNotPresent"
     podAnnotations: {}
@@ -1956,7 +1956,7 @@ logging:
     envFrom: []
     secretMounts: []
     hostAliases: []
-    image: "xnet.registry.io:8443/observability/kibana/kibana"
+    image: "docker.elastic.co/kibana/kibana"
     imageTag: "8.5.1"
     imagePullPolicy: "IfNotPresent"
     labels: {}
@@ -2151,7 +2151,7 @@ logging:
     hostPathRoot: /var/lib
     dnsConfig: {}
     hostAliases: []
-    image: "xnet.registry.io:8443/observability/beats/filebeat"
+    image: "docker.elastic.co/beats/filebeat"
     imageTag: "8.5.1"
     imagePullPolicy: "IfNotPresent"
     imagePullSecrets: []
@@ -2211,7 +2211,7 @@ tracing:
   # enabled: false
   global:
     image:
-      repository: xnet.registry.io:8443/observability/deepflow-ce
+      repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce
       pullPolicy: IfNotPresent
       imagePullSecrets: []
     hostNetwork: false
@@ -2750,7 +2750,7 @@ tracing:
     adminPassword: deepflow
     containerSecurityContext: []
     image:
-      registry: xnet.registry.io:8443/observability
+      registry: registry.cn-beijing.aliyuncs.com/deepflow-ce
       repository: grafana
       tag: "12.0.2"
       sha: ""

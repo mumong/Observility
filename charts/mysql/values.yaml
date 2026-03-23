@@ -18,7 +18,7 @@ global:
 replicas: 1
 
 image:
-  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/mysql
+  repository: xnet.registry.io:8443/observability/mysql
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: 8.0.39

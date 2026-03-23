@@ -1,25 +1,25 @@
 ---
 image:
-  repository: foundationdb/fdb-kubernetes-operator
+  repository: xnet.registry.io:8443/observability/fdb-kubernetes-operator
   tag: v1.9.0
   pullPolicy: IfNotPresent
 
 initContainerImage:
-  repository: foundationdb/foundationdb-kubernetes-sidecar
+  repository: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
 initContainers:
   6.2:
     image:
-      repository: foundationdb/foundationdb-kubernetes-sidecar
+      repository: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
       tag: 6.2.30-1
       pullPolicy: IfNotPresent
   6.3:
     image:
-      repository: foundationdb/foundationdb-kubernetes-sidecar
+      repository: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
       tag: 6.3.23-1
       pullPolicy: IfNotPresent
   7.1:
     image:
-      repository: foundationdb/foundationdb-kubernetes-sidecar
+      repository: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
       tag: 7.1.15-1
       pullPolicy: IfNotPresent
 

@@ -25,7 +25,7 @@ fullnameOverride: ""
 podAnnotations: {}
 
 image:
-  repository: registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflowio-stella-agent-ce
+  repository: xnet.registry.io:8443/observability/deepflowio-stella-agent-ce
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: latest
