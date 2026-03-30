@@ -1,3 +1,11 @@
 .git/
 *.tmp
 *.log
+test/
+tools/
+/nvidia-gpu-exporter
+values-bac.yaml
+final.yaml
+.claude/
+README_chart.md
+*.tar.gz

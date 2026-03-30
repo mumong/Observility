@@ -77,3 +77,6 @@ docker.io/library/telegraf:1.32-alpine -> xnet.registry.io:8443/observability/te
 influxdb:2.7.4-alpine -> xnet.registry.io:8443/observability/influxdb:2.7.4-alpine
 grafana/otel-lgtm:latest -> xnet.registry.io:8443/observability/grafana/otel-lgtm:latest
 xnet.registry.io:8443/apiserver/apiserver:v1.0 -> xnet.registry.io:8443/observability/apiserver:v1.0
+
+# === customer/nvidia-gpu-exporter ===
+docker.io/utkuozdemir/nvidia_gpu_exporter:1.2.0 -> xnet.registry.io:8443/observability/utkuozdemir/nvidia_gpu_exporter:1.2.0

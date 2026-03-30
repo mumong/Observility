@@ -1,0 +1,23 @@
+{{- if .Values.customer.enabled -}}
+{{- if .Values.customer.nvidiaGpuExporter.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nvidia-gpu-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-gpu-exporter.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.customer.nvidiaGpuExporter.service.type }}
+  ports:
+    - port: {{ .Values.customer.nvidiaGpuExporter.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if and (.Values.customer.nvidiaGpuExporter.service.nodePort) (or (eq .Values.customer.nvidiaGpuExporter.service.type "NodePort") (eq .Values.customer.nvidiaGpuExporter.service.type "LoadBalancer")) }}
+      nodePort: {{ .Values.customer.nvidiaGpuExporter.service.nodePort }}
+      {{- end }}
+  selector:
+    {{- include "nvidia-gpu-exporter.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}
