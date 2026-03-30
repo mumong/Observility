@@ -1,0 +1,37 @@
+{{- if .Values.customer.enabled -}}
+{{- if .Values.customer.nvidiaGpuExporter.enabled -}}
+{{- if .Values.customer.nvidiaGpuExporter.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nvidia-gpu-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-gpu-exporter.labels" . | nindent 4 }}
+    {{- with .Values.customer.nvidiaGpuExporter.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  endpoints:
+    - port: http
+      path: {{ .Values.customer.nvidiaGpuExporter.telemetryPath }}
+      {{- with .Values.customer.nvidiaGpuExporter.serviceMonitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.customer.nvidiaGpuExporter.serviceMonitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- with .Values.customer.nvidiaGpuExporter.serviceMonitor.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.customer.nvidiaGpuExporter.serviceMonitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nvidia-gpu-exporter.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

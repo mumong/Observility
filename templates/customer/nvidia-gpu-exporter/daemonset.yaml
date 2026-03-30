@@ -1,0 +1,74 @@
+{{- if .Values.customer.enabled -}}
+{{- if .Values.customer.nvidiaGpuExporter.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "nvidia-gpu-exporter.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-gpu-exporter.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "nvidia-gpu-exporter.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nvidia-gpu-exporter.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "nvidia-gpu-exporter.serviceAccountName" . }}
+      securityContext: {}
+      containers:
+        - name: nvidia-gpu-exporter
+          securityContext:
+            {{- toYaml .Values.customer.nvidiaGpuExporter.securityContext | nindent 12 }}
+          image: "{{ .Values.customer.nvidiaGpuExporter.image.repository }}:{{ .Values.customer.nvidiaGpuExporter.image.tag }}"
+          imagePullPolicy: {{ .Values.customer.nvidiaGpuExporter.image.pullPolicy }}
+          args:
+            - --web.listen-address
+            - :{{ .Values.customer.nvidiaGpuExporter.port }}
+            - --web.telemetry-path
+            - {{ .Values.customer.nvidiaGpuExporter.telemetryPath }}
+            - --nvidia-smi-command
+            - {{ .Values.customer.nvidiaGpuExporter.nvidiaSmiCommand }}
+            - --query-field-names
+            - {{ join "," .Values.customer.nvidiaGpuExporter.queryFieldNames }}
+            - --log.level
+            - {{ .Values.customer.nvidiaGpuExporter.log.level }}
+            - --log.format
+            - {{ .Values.customer.nvidiaGpuExporter.log.format }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.customer.nvidiaGpuExporter.port }}
+              protocol: TCP
+              {{- if .Values.customer.nvidiaGpuExporter.hostPort.enabled }}
+              hostPort: {{ .Values.customer.nvidiaGpuExporter.hostPort.port }}
+              {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          volumeMounts:
+            {{- toYaml .Values.customer.nvidiaGpuExporter.volumeMounts | nindent 12 }}
+          resources:
+            {{- toYaml .Values.customer.nvidiaGpuExporter.resources | nindent 12 }}
+      volumes:
+        {{- toYaml .Values.customer.nvidiaGpuExporter.volumes | nindent 8 }}
+      {{- with .Values.customer.nvidiaGpuExporter.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.customer.nvidiaGpuExporter.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.customer.nvidiaGpuExporter.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

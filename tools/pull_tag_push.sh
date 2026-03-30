@@ -81,6 +81,9 @@ do_image "registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflowio-init-grafana-
 do_image "telegraf:1.32-alpine" "xnet.registry.io:8443/observability/telegraf:1.32-alpine"
 do_image "grafana/otel-lgtm:latest" "xnet.registry.io:8443/observability/grafana/otel-lgtm:latest"
 
+# 4. customer/nvidia-gpu-exporter
+do_image "docker.io/utkuozdemir/nvidia_gpu_exporter:1.2.0" "xnet.registry.io:8443/observability/utkuozdemir/nvidia_gpu_exporter:1.2.0"
+
 # 2. image.txt 中额外的镜像（values 中定义但未被当前 helm template 渲染）
 do_image "quay.io/prometheus-operator/prometheus-config-reloader:v0.83.0" "xnet.registry.io:8443/observability/prometheus-operator/prometheus-config-reloader:v0.83.0"
 do_image "quay.io/thanos/thanos:v0.38.0" "xnet.registry.io:8443/observability/thanos/thanos:v0.38.0"

@@ -636,7 +636,10 @@ metric:
       additionalScrapeConfigs:
         - job_name: 'gpu-dcgm-exporter'
           static_configs:
-            - targets: ['nvidia-dcgm-exporter.default.svc.cluster.local:9400']
+            - targets: ['nvidia-dcgm-exporter.admin.svc.cluster.local:9400']
+        - job_name: 'nvidia-gpu-exporter'
+          static_configs:
+            - targets: ['nvidia-gpu-exporter.admin.svc.cluster.local:9835']
       additionalScrapeConfigsSecret: {}
       additionalPrometheusSecretsAnnotations: {}
       additionalAlertManagerConfigs: []
@@ -2927,4 +2930,68 @@ customer:
         window_step: 1m
         dimension_key: "cluster"
         target_bucket: "xnet_usage"
+  nvidiaGpuExporter:
+    enabled: false
+    image:
+      repository: xnet.registry.io:8443/observability/utkuozdemir/nvidia_gpu_exporter
+      tag: "1.2.0"
+      pullPolicy: IfNotPresent
+    serviceAccount:
+      create: true
+      name: ""
+    securityContext:
+      privileged: true
+    service:
+      type: ClusterIP
+      port: 9835
+      nodePort:
+    port: 9835
+    hostPort:
+      enabled: false
+      port: 9835
+    log:
+      level: info
+      format: logfmt
+    queryFieldNames:
+      - AUTO
+    nvidiaSmiCommand: nvidia-smi
+    telemetryPath: /metrics
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    volumes:
+      - name: nvidiactl
+        hostPath:
+          path: /dev/nvidiactl
+      - name: nvidia0
+        hostPath:
+          path: /dev/nvidia0
+      - name: nvidia-smi
+        hostPath:
+          path: /usr/bin/nvidia-smi
+      - name: libnvidia-ml-so
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+      - name: libnvidia-ml-so-1
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+    volumeMounts:
+      - name: nvidiactl
+        mountPath: /dev/nvidiactl
+      - name: nvidia0
+        mountPath: /dev/nvidia0
+      - name: nvidia-smi
+        mountPath: /usr/bin/nvidia-smi
+      - name: libnvidia-ml-so
+        mountPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+      - name: libnvidia-ml-so-1
+        mountPath: /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1
+    serviceMonitor:
+      enabled: false
+      additionalLabels: {}
+      interval: ""
+      scrapeTimeout: 10s
+      relabelings: []
+      metricRelabelings: []
     
