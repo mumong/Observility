@@ -47,7 +47,7 @@
 
 ```bash
 # 安装到默认命名空间
-helm install obs . -n xnet --create-namespace
+helm install observability ./ -n xnet --create-namespace
 
 
 ```
