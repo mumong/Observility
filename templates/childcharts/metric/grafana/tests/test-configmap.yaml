@@ -1,0 +1,35 @@
+{{- $values := include "childcharts.metric.grafana.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentValues := get $metricValues "grafana" | default dict -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "grafana" "Version" "9.2.7" "AppVersion" "12.0.2" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if .Values.testFramework.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "grafana.fullname" . }}-test
+  namespace: {{ include "grafana.namespace" . }}
+  annotations:
+    "helm.sh/hook": {{ .Values.testFramework.hookType | default "test" }}
+    "helm.sh/hook-delete-policy": "before-hook-creation,hook-succeeded"
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+data:
+  run.sh: |-
+    @test "Test Health" {
+      url="http://{{ include "grafana.fullname" . }}/api/health"
+
+      code=$(wget --server-response --spider --timeout 90 --tries 10 ${url} 2>&1 | awk '/^  HTTP/{print $2}')
+      [ "$code" == "200" ]
+    }
+{{- end }}
+
+{{- end -}}
+{{- end -}}

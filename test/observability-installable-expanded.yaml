@@ -1,0 +1,31 @@
+metric:
+  grafana:
+    ingress:
+      enabled: false
+    imageRenderer:
+      enabled: false
+  kube-state-metrics:
+    kubeRBACProxy:
+      enabled: false
+  prometheus-node-exporter:
+    kubeRBACProxy:
+      enabled: false
+
+tracing:
+  byconity:
+    enabled: true
+    hdfs:
+      enabled: false
+      shell:
+        enabled: false
+    ingress:
+      enabled: true
+  stella-agent-ce:
+    enabled: true
+
+customer:
+  dataservice:
+    influxdb2:
+      enabled: false
+  nvidiaGpuExporter:
+    enabled: true

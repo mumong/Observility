@@ -1,0 +1,75 @@
+{{- $values := include "childcharts.metric.kube-state-metrics.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentEnabled := or (not (hasKey $values "enabled")) (get $values "enabled") -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "kube-state-metrics" "Version" "5.37.0" "AppVersion" "2.15.0" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") $componentEnabled -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if .Values.prometheus.scrapeconfig.enabled }}
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: {{ template "childcharts.metric.kube-state-metrics.fullname" . }}
+  namespace: {{ template "childcharts.metric.kube-state-metrics.namespace" . }}
+  labels:
+    {{- include "childcharts.metric.kube-state-metrics.labels" . | indent 4 }}
+  {{- with .Values.prometheus.scrapeconfig.additionalLabels }}
+    {{- tpl (toYaml . | nindent 4) $ctxRoot }}
+  {{- end }}
+  {{- with .Values.prometheus.scrapeconfig.annotations }}
+  annotations:
+    {{- tpl (toYaml . | nindent 4) $ctxRoot }}
+  {{- end }}
+spec:
+  {{- include "childcharts.metric.kube-state-metrics.scrapeconfig.scrapeLimits" .Values.prometheus.scrapeconfig | indent 2 }}
+  staticConfigs:
+    - targets:
+        - {{ template "childcharts.metric.kube-state-metrics.fullname" . }}.{{ template "childcharts.metric.kube-state-metrics.namespace" . }}.svc:{{ .Values.service.port }}
+    {{- if .Values.prometheus.scrapeconfig.staticConfigLabels}}
+      labels:
+      {{- with .Values.prometheus.scrapeconfig.staticConfigLabels }}
+        {{- tpl (toYaml . | nindent 8) $ctxRoot }}
+      {{- end }}
+    {{- end }}
+{{- if .Values.prometheus.scrapeconfig.jobName }}
+  jobName: {{ .Values.prometheus.scrapeconfig.jobName }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.honorLabels }}
+  honorLabels: true
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.scrapeInterval }}
+  scrapeInterval: {{ .Values.prometheus.scrapeconfig.scrapeInterval }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.scrapeTimeout }}
+  scrapeTimeout: {{ .Values.prometheus.scrapeconfig.scrapeTimeout }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.proxyUrl }}
+  proxyUrl: {{ .Values.prometheus.scrapeconfig.proxyUrl }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.enableHttp2 }}
+  enableHttp2: {{ .Values.prometheus.scrapeconfig.enableHttp2 }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.metricRelabelings }}
+  metricRelabelings:
+    {{- toYaml .Values.prometheus.scrapeconfig.metricRelabelings | nindent 4 }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.relabelings }}
+  relabelings:
+    {{- toYaml .Values.prometheus.scrapeconfig.relabelings | nindent 4 }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.scheme  }}
+  scheme: {{ .Values.prometheus.scrapeconfig.scheme }}
+{{- end }}
+{{- if .Values.prometheus.scrapeconfig.tlsConfig }}
+  tlsConfig:
+    {{- toYaml (.Values.prometheus.scrapeconfig.tlsConfig ) | nindent 4 }}
+{{- end }}
+{{- end }}
+
+{{- end -}}
+{{- end -}}
