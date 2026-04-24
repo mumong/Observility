@@ -1,0 +1,55 @@
+{{- $values := include "childcharts.metric.prometheus-node-exporter.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentEnabled := or (not (hasKey $values "enabled")) (get $values "enabled") -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "prometheus-node-exporter" "Version" "4.47.0" "AppVersion" "1.9.1" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") $componentEnabled -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if and (.Capabilities.APIVersions.Has "autoscaling.k8s.io/v1") (.Values.verticalPodAutoscaler.enabled) }}
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: {{ include "childcharts.metric.prometheus-node-exporter.fullname" . }}
+  namespace: {{ include "childcharts.metric.prometheus-node-exporter.namespace" . }}
+  labels:
+    {{- include "childcharts.metric.prometheus-node-exporter.labels" . | nindent 4 }}
+spec:
+  {{- with .Values.verticalPodAutoscaler.recommenders }}
+  recommenders:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  resourcePolicy:
+    containerPolicies:
+    - containerName: node-exporter
+      {{- with .Values.verticalPodAutoscaler.controlledResources }}
+      controlledResources:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.verticalPodAutoscaler.controlledValues }}
+      controlledValues: {{ . }}
+      {{- end }}
+      {{- with .Values.verticalPodAutoscaler.maxAllowed }}
+      maxAllowed:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.verticalPodAutoscaler.minAllowed }}
+      minAllowed:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  targetRef:
+    apiVersion: apps/v1
+    kind: DaemonSet
+    name: {{ include "childcharts.metric.prometheus-node-exporter.fullname" . }}
+  {{- with .Values.verticalPodAutoscaler.updatePolicy }}
+  updatePolicy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,82 @@
+{{- $values := include "childcharts.tracing.stella-agent-ce.values" . | fromYaml -}}
+{{- if and .Values.tracing.enabled $values.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "childcharts.tracing.stella-agent-ce.fullname" . }}
+  labels:
+    {{- include "childcharts.tracing.stella-agent-ce.labels" . | nindent 4 }}
+spec:
+  replicas: {{ tpl (toString $values.replicas) . }}
+  selector:
+    matchLabels:
+      {{- include "childcharts.tracing.stella-agent-ce.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ toYaml $values.configmap | sha256sum }}
+      {{- with $values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "childcharts.tracing.stella-agent-ce.selectorLabels" . | nindent 8 }}
+        {{- with $values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: {{ tpl (toString $values.hostNetwork) . }}
+      dnsPolicy: {{ tpl $values.dnsPolicy . }}
+      imagePullSecrets:
+      {{- with $values.global.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: stella-agent-ce
+          securityContext:
+            {{- toYaml $values.securityContext | nindent 12 }}
+          image: "{{ tpl $values.image.repository . }}:{{ tpl (toString $values.image.tag) . }}"
+          imagePullPolicy: {{ tpl $values.image.pullPolicy . }}
+          ports:
+            - name: http
+              containerPort: 20831
+              protocol: TCP
+          livenessProbe:
+            {{ toYaml $values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{ toYaml $values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml $values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/web/df-llm-agent.yaml
+              subPath: df-llm-agent.yaml
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "childcharts.tracing.stella-agent-ce.fullname" . }}
+            items:
+            - key: df-llm-agent.yaml
+              path: df-llm-agent.yaml
+      {{- with $values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+{{ include "childcharts.tracing.stella-agent-ce.nodeaffinity" . | nindent 8 }}
+{{ include "childcharts.tracing.stella-agent-ce.podAffinity" . | nindent 8 }}
+{{ include "childcharts.tracing.stella-agent-ce.podAntiAffinity" . | nindent 8 }}
+      {{- if or $values.global.tolerations $values.tolerations }}
+      tolerations:
+      {{- if $values.global.tolerations }}
+      {{- toYaml $values.global.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if $values.tolerations }}
+      {{- toYaml $values.tolerations | nindent 8 }}
+      {{- end }}
+      {{- end }}
+{{- end }}

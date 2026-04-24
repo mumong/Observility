@@ -1,0 +1,34 @@
+{{- $values := include "childcharts.metric.kube-state-metrics.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentEnabled := or (not (hasKey $values "enabled")) (get $values "enabled") -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "kube-state-metrics" "Version" "5.37.0" "AppVersion" "2.15.0" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") $componentEnabled -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if and .Values.podSecurityPolicy.enabled (.Capabilities.APIVersions.Has "policy/v1beta1/PodSecurityPolicy") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "childcharts.metric.kube-state-metrics.labels" . | indent 4 }}
+  name: psp-{{ template "childcharts.metric.kube-state-metrics.fullname" . }}
+rules:
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+{{- if semverCompare "> 1.15.0-0" $kubeTargetVersion }}
+- apiGroups: ['policy']
+{{- else }}
+- apiGroups: ['extensions']
+{{- end }}
+  resources: ['podsecuritypolicies']
+  verbs:     ['use']
+  resourceNames:
+  - {{ template "childcharts.metric.kube-state-metrics.fullname" . }}
+{{- end }}
+
+{{- end -}}
+{{- end -}}

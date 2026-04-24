@@ -1,0 +1,34 @@
+{{- $values := include "childcharts.tracing.byconity.fdb-operator.values" . | fromYaml -}}
+{{- $ctxValues := mustMergeOverwrite (dict "global" ((index .Values.tracing "global") | default dict)) (deepCopy $values) -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and .Values.tracing.enabled ((index .Values.tracing "byconity" "enabled") | default false) ($values.enabled | default false) -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if .Values.globalMode.enabled }}
+kind: ClusterRoleBinding
+{{- else }}
+kind: RoleBinding
+{{- end }}
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fdb-operator.fullname" . }}
+  labels:
+    {{- include "childcharts.tracing.byconity.fdb-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  {{- if .Values.globalMode.enabled }}
+  kind: ClusterRole
+  {{- else }}
+  kind: Role
+  {{- end }}
+  name: {{ include "childcharts.tracing.byconity.fdb-operator.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ include "childcharts.tracing.byconity.fdb-operator.serviceAccountName" . }}
+  {{- if .Values.globalMode.enabled }}
+  namespace: {{ .Release.Namespace }}
+  {{- end }}
+
+{{- end -}}
+{{- end -}}

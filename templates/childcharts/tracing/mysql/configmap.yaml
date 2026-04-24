@@ -1,0 +1,46 @@
+{{- $values := include "childcharts.tracing.mysql.values" . | fromYaml -}}
+{{- $tracingValues := get .Values "tracing" | default dict -}}
+{{- $componentValues := get $tracingValues "mysql" | default dict -}}
+{{- $ctxChart := dict "Name" "mysql" "Version" "0.1.000" "AppVersion" "8.0.39" -}}
+{{- $ctx := dict "Values" $values "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- define "childcharts.tracing.mysql.configmap" -}}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "childcharts.tracing.mysql.fullname" . }}
+  labels:
+    {{- include "childcharts.tracing.mysql.labels" . | nindent 4 }}
+data:
+  my.cnf: |-
+    [client]
+    default-character-set=utf8
+
+    [mysqld]
+    default-authentication-plugin=mysql_native_password
+
+    # Network related
+    bind-address=*
+    port=30130
+
+    # Enable query cache
+    innodb_buffer_pool_size=20M
+    max_connections=1000
+    wait_timeout=60
+
+    # Replication related
+    slave_skip_errors=all
+
+    ## Binlog expiration time, default 1 days
+    binlog_expire_logs_seconds = 86400
+  init.sql: |-
+    ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ tpl $.Values.password . }}';
+    CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED WITH mysql_native_password BY '{{ tpl $.Values.password . }}';
+    GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
+    CREATE USER IF NOT EXISTS 'grafana'@'%' IDENTIFIED WITH mysql_native_password BY '{{ tpl $.Values.password . }}';
+    GRANT ALL ON *.* TO 'grafana'@'%' WITH GRANT OPTION;
+{{- end -}}
+{{- if and (get $tracingValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{ include "childcharts.tracing.mysql.configmap" . }}
+{{- end }}
+{{- end }}
