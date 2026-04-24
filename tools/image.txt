@@ -23,7 +23,7 @@ docker.elastic.co/beats/filebeat:8.5.1 -> xnet.registry.io:8443/observability/be
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/* -> xnet.registry.io:8443/observability/deepflow-ce/*
 registry.cn-beijing.aliyuncs.com/deepflow-ce/grafana -> xnet.registry.io:8443/observability/grafana
 
-# === files/childcharts/metric/grafana/values.yaml ===
+# === charts/grafana/values.yaml ===
 docker.io/grafana/grafana -> xnet.registry.io:8443/observability/grafana/grafana
 docker.io/bats/bats:v1.4.1 -> xnet.registry.io:8443/observability/bats/bats:v1.4.1
 docker.io/curlimages/curl:8.9.1 -> xnet.registry.io:8443/observability/curlimages/curl:8.9.1
@@ -33,42 +33,42 @@ registry.cn-hongkong.aliyuncs.com/deepflow-ce/* -> xnet.registry.io:8443/observa
 quay.io/kiwigrid/k8s-sidecar:1.30.0 -> xnet.registry.io:8443/observability/kiwigrid/k8s-sidecar:1.30.0
 docker.io/grafana/grafana-image-renderer -> xnet.registry.io:8443/observability/grafana/grafana-image-renderer
 
-# === templates/childcharts/metric/grafana/ ===
+# === charts/grafana/templates/ ===
 python:3-alpine -> xnet.registry.io:8443/observability/python:3-alpine
 
-# === files/childcharts/metric/kube-state-metrics/values.yaml ===
+# === charts/kube-state-metrics/values.yaml ===
 registry.k8s.io/kube-state-metrics/kube-state-metrics -> xnet.registry.io:8443/observability/kube-state-metrics/kube-state-metrics
 quay.io/brancz/kube-rbac-proxy:v0.19.1 -> xnet.registry.io:8443/observability/brancz/kube-rbac-proxy:v0.19.1
 
-# === files/childcharts/metric/prometheus-node-exporter/values.yaml ===
+# === charts/prometheus-node-exporter/values.yaml ===
 quay.io/prometheus/node-exporter -> xnet.registry.io:8443/observability/prometheus/node-exporter
 quay.io/brancz/kube-rbac-proxy:v0.19.1 -> xnet.registry.io:8443/observability/brancz/kube-rbac-proxy:v0.19.1
 
-# === templates/childcharts/tracing/clickhouse + parent values ===
+# === charts/clickhouse/values.yaml ===
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/clickhouse-server -> xnet.registry.io:8443/observability/clickhouse-server
 
-# === templates/childcharts/tracing/mysql + parent values ===
+# === charts/mysql/values.yaml ===
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/mysql -> xnet.registry.io:8443/observability/mysql
 
-# === templates/childcharts/tracing/deepflow-agent + parent values ===
+# === charts/deepflow-agent/values.yaml ===
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflow-agent -> xnet.registry.io:8443/observability/deepflow-agent
 
-# === templates/childcharts/tracing/stella-agent-ce + parent values ===
+# === charts/stella-agent-ce/values.yaml ===
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/deepflowio-stella-agent-ce -> xnet.registry.io:8443/observability/deepflowio-stella-agent-ce
 
-# === files/childcharts/tracing/byconity/values.yaml ===
+# === charts/byconity/values.yaml ===
 registry.cn-hongkong.aliyuncs.com/deepflow-ce/byconity:1.0.0 -> xnet.registry.io:8443/observability/byconity:1.0.0
 foundationdb/fdb-kubernetes-operator:v1.9.0 -> xnet.registry.io:8443/observability/fdb-kubernetes-operator:v1.9.0
 gchq/hdfs:3.2.2 -> xnet.registry.io:8443/observability/hdfs:3.2.2
 
-# === templates/childcharts/tracing/byconity/fdb-operator + parent merged values ===
+# === charts/byconity/charts/fdb-operator/values.yaml ===
 foundationdb/fdb-kubernetes-operator:v1.9.0 -> xnet.registry.io:8443/observability/fdb-kubernetes-operator:v1.9.0
 foundationdb/foundationdb-kubernetes-sidecar -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
 foundationdb/foundationdb-kubernetes-sidecar:6.2.30-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:6.2.30-1
 foundationdb/foundationdb-kubernetes-sidecar:6.3.23-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:6.3.23-1
 foundationdb/foundationdb-kubernetes-sidecar:7.1.15-1 -> xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar:7.1.15-1
 
-# === templates/childcharts/tracing/byconity/hdfs + parent merged values ===
+# === charts/byconity/charts/hdfs/values.yaml ===
 alpine:3.10.2 -> xnet.registry.io:8443/observability/alpine:3.10.2
 gchq/hdfs:3.2.2 -> xnet.registry.io:8443/observability/hdfs:3.2.2
 
