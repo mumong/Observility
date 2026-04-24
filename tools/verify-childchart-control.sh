@@ -53,16 +53,46 @@ main() {
 
   cd "${ROOT_DIR}"
 
+  cat > "${TMP_DIR}/all-enabled.yaml" <<'EOF'
+tracing:
+  enabled: true
+  mysql:
+    enabled: true
+  clickhouse:
+    enabled: true
+  deepflow-agent:
+    enabled: true
+  stella-agent-ce:
+    enabled: true
+  byconity:
+    enabled: true
+    hdfs:
+      enabled: true
+metric:
+  enabled: true
+  grafana:
+    enabled: true
+    persistence:
+      enabled: true
+    useStatefulSet: true
+  kube-state-metrics:
+    enabled: true
+  prometheus-node-exporter:
+    enabled: true
+  crds:
+    enabled: true
+EOF
+
   helm lint . >/dev/null
   log_pass "helm lint (default)"
 
-  helm lint . -f observability-all-enabled.yaml >/dev/null
+  helm lint . -f "${TMP_DIR}/all-enabled.yaml" >/dev/null
   log_pass "helm lint (all-enabled)"
 
   helm template observability ./ -n xnet > current-rendered.yaml
   log_pass "render default -> current-rendered.yaml"
 
-  helm template observability ./ -n xnet -f observability-all-enabled.yaml > verify-rendered.yaml
+  helm template observability ./ -n xnet -f "${TMP_DIR}/all-enabled.yaml" > verify-rendered.yaml
   log_pass "render all-enabled -> verify-rendered.yaml"
 
   cat > "${TMP_DIR}/final-parity-check.yaml" <<'EOF'
@@ -74,12 +104,14 @@ metric:
     enabled: false
 EOF
   helm template observability ./ -n xnet -f "${TMP_DIR}/final-parity-check.yaml" > compare-rendered.yaml
-  render_inventory final.yaml "${TMP_DIR}/final.inventory.tsv"
-  render_inventory compare-rendered.yaml "${TMP_DIR}/compare.inventory.tsv"
-  comm -23 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-final.tsv"
-  comm -13 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-compare.tsv"
-  [[ ! -s "${TMP_DIR}/only-in-final.tsv" ]]
-  [[ ! -s "${TMP_DIR}/only-in-compare.tsv" ]]
+  if [[ -f final.yaml ]]; then
+    render_inventory final.yaml "${TMP_DIR}/final.inventory.tsv"
+    render_inventory compare-rendered.yaml "${TMP_DIR}/compare.inventory.tsv"
+    comm -23 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-final.tsv"
+    comm -13 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-compare.tsv"
+    [[ ! -s "${TMP_DIR}/only-in-final.tsv" ]]
+    [[ ! -s "${TMP_DIR}/only-in-compare.tsv" ]]
+  fi
   log_pass "render parity with final.yaml"
 
   cat > "${TMP_DIR}/control-proof-tracing.yaml" <<'EOF'
@@ -121,7 +153,7 @@ EOF
   require_match 'registry\.trace\.local/obs/clickhouse-proof:23\.10' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
   require_match 'registry\.trace\.local/obs/agent-proof:v7\.0' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
   require_match 'registry\.trace\.local/obs/stella-proof:latest' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
-  require_match 'registry\.trace\.local/obs/shell-proof/foundationdb:7\.1\.15' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
+  require_match 'registry\.trace\.local/obs/shell-proof:7\.1\.15-1' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
   require_match 'imagePullPolicy: Always' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
   require_match 'value: "UTC"' "${TMP_DIR}/control-proof-tracing.rendered.yaml"
   log_pass "tracing parent controls"

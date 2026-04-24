@@ -2835,7 +2835,7 @@ tracing:
   stella-agent-ce:
     enabled: false
   byconity:
-    enabled: true
+    enabled: false
 
 customer:
   enabled: true

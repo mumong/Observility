@@ -57,7 +57,9 @@ spec:
       name: storage
     spec:
       accessModes: {{ .Values.persistence.accessModes }}
-      storageClassName: {{ .Values.persistence.storageClassName }}
+      {{- with .Values.persistence.storageClassName }}
+      storageClassName: {{ . }}
+      {{- end }}
       {{- with .Values.persistence.volumeName }}
       volumeName: {{ . | quote }}
       {{- end }}
