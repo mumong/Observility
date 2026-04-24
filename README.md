@@ -1,269 +1,260 @@
 # 统一可观测性平台
 
-![版本: 1.0.0](https://img.shields.io/badge/版本-1.0.0-informational?style=flat-square) ![类型: application](https://img.shields.io/badge/类型-application-informational?style=flat-square)
+![版本: 1.0.2](https://img.shields.io/badge/版本-1.0.2-informational?style=flat-square) ![类型: application](https://img.shields.io/badge/类型-application-informational?style=flat-square)
 
-企业级 Kubernetes 可观测性解决方案，整合监控指标、日志管理、分布式追踪和客户化数据服务的一体化平台。
+企业级 Kubernetes 可观测性解决方案，整合指标、日志、分布式追踪和客户化数据服务，统一通过父层 `values.yaml` 管理。
 
-## 🎯 项目特点
+## 项目说明
 
-- **一体化解决方案**: 集成 Prometheus、Grafana、Elasticsearch、DeepFlow 等业界领先组件
-- **开箱即用**: 预配置的仪表盘、告警规则和数据收集器
-- **灵活扩展**: 支持外部数据库和自定义配置
-- **企业级特性**: 高可用、安全认证、多租户支持
-- **客户化集成**: 内置 API 服务器和数据服务模块
+当前 Chart 的使用方式是：
 
-## 🏗️ 架构组件
+- 直接安装当前目录，不需要额外预处理
+- 正常安装命令仍然是 `helm install observability ./ -n xnet --create-namespace`
+- 组件开关和配置统一从父层 `values.yaml` 控制
+- 主要控制入口保持为 `metric.*`、`logging.*`、`tracing.*`、`customer.*`
 
-### 指标监控 (Metrics)
-- **Prometheus Operator** - 自动化监控部署和管理
-- **Grafana** - 数据可视化和仪表盘 (NodePort: 30300)
-- **Alertmanager** - 告警聚合和通知 (NodePort: 30903)
-- **kube-state-metrics** - Kubernetes 对象状态指标
-- **Node Exporter** - 主机系统指标采集
-- **Kepler** - 容器能效和资源监控
+这意味着即使底层包含原始子组件能力，日常使用时也只需要改父层参数，然后直接执行 Helm 命令即可。
 
-### 日志管理 (Logging)
-- **Elasticsearch 8.5.1** - 日志存储和搜索引擎 (NodePort: 30988)
-- **Kibana 8.5.1** - 日志可视化和分析 (NodePort: 30223)
-- **Filebeat** - 轻量级日志收集器
+## 架构组件
 
-### 分布式追踪 (Tracing)
-- **DeepFlow v7.0** - 全栈可观测性平台
-  - DeepFlow Server - 数据处理和查询服务
-  - DeepFlow Agent - 分布式数据采集
-  - DeepFlow App - 可视化应用 (NodePort: 20418)
-- **ClickHouse 23.10** - 高性能时序数据库
-- **MySQL 8.0.39** - 元数据存储
+### 指标监控
 
-### 客户化服务 (Customer)
-- **API Server** - RESTful API 服务 (NodePort: 31520)
-- **Data Service** - 数据处理和分析服务
-  - Telegraf - 指标收集和处理
-  - InfluxDB v2 - 时序数据库 (NodePort: 31521)
+- Prometheus Operator
+- Grafana
+- Alertmanager
+- kube-state-metrics
+- Prometheus Node Exporter
+- Kepler
 
-## 🚀 快速开始
+### 日志管理
 
-### 安装
+- Elasticsearch 8.5.1
+- Kibana 8.5.1
+- Filebeat
+
+### 分布式追踪
+
+- DeepFlow v7.0
+- ClickHouse 23.10
+- MySQL 8.0.39
+- ByConity
+
+### 客户化服务
+
+- API Server
+- Data Service
+- Telegraf
+- InfluxDB v2
+
+## 安装前准备
+
+- Kubernetes 集群已经可用
+- 本机已安装 Helm 3
+- 集群节点能够拉取 `xnet.registry.io:8443/observability/*` 相关镜像
+- 如果需要持久化存储，请提前确认默认 `StorageClass` 或在父层 `values.yaml` 中显式指定
+
+## 安装
+
+### 1. 默认安装
+
+默认安装会使用仓库根目录的 `values.yaml`：
 
 ```bash
-# 安装到默认命名空间
 helm install observability ./ -n xnet --create-namespace
-
-
 ```
 
-### 验证安装
+如果你希望安装或升级都复用同一条命令，建议直接使用：
 
 ```bash
-# 检查 Pod 状态
-kubectl get pods -n xnet
-
-# 检查服务
-kubectl get svc -n xnet
-
-# 查看 Grafana 仪表盘
-kubectl port-forward -n xnet svc/obs-grafana 3000:80
+helm upgrade --install observability ./ -n xnet --create-namespace
 ```
 
-### 卸载
+### 2. 全组件安装
+
+如果你要一次性把当前仓库中已经接入的组件全部打开，可以使用覆盖文件：
 
 ```bash
-helm uninstall obs -n xnet
+helm upgrade --install observability ./ -n xnet --create-namespace -f observability-all-enabled.yaml
 ```
 
-## ⚙️ 重要配置
+`observability-all-enabled.yaml` 只是额外覆盖，不会替代默认 `values.yaml`，最终生效结果是两者合并后的配置。
 
-### 全局配置
+### 3. 自定义安装
 
-| 参数 | 描述 | 默认值 |
-|------|------|--------|
-| `global.timezone` | 时区设置 | `Asia/Shanghai` |
-| `global.storageClass` | 存储类名 | `""` |
-| `global.hostNetwork` | 主机网络模式 | `false` |
+你有两种常见方式：
 
-### 监控配置
+方式一，直接修改根目录 [values.yaml](/root/test/observability/values.yaml)，然后安装：
 
-| 参数 | 描述 | 默认值 |
-|------|------|--------|
-| `metric.enabled` | 启用监控组件 | `true` |
-| `metric.grafana.adminPassword` | Grafana 管理员密码 | `changeme` |
-| `metric.grafana.service.nodePort` | Grafana 端口 | `30300` |
-| `metric.prometheus.prometheusSpec.retention` | 数据保留时间 | `10d` |
-| `metric.prometheus.prometheusSpec.replicas` | 副本数 | `1` |
-
-### 日志配置
-
-| 参数 | 描述 | 默认值 |
-|------|------|--------|
-| `logging.enabled` | 启用日志组件 | `true` |
-| `logging.elasticsearch.imageTag` | ES 版本 | `8.5.1` |
-| `logging.elasticsearch.volumeClaimTemplate.resources.requests.storage` | ES 存储大小 | `30Gi` |
-| `logging.kibana.service.nodePort` | Kibana 端口 | `30223` |
-
-### 追踪配置
-
-| 参数 | 描述 | 默认值 |
-|------|------|--------|
-| `tracing.enabled` | 启用追踪组件 | `true` |
-| `tracing.global.storageEngine` | 存储引擎 | `clickhouse` |
-| `tracing.global.replicas` | 副本数 | `1` |
-| `tracing.global.externalClickHouse.enabled` | 外部 ClickHouse | `false` |
-| `tracing.global.externalMySQL.enabled` | 外部 MySQL | `false` |
-
-### 客户化服务配置
-
-| 参数 | 描述 | 默认值 |
-|------|------|--------|
-| `customer.enabled` | 启用客户化服务 | `true` |
-| `customer.apiserver.nodePort` | API 服务端口 | `31520` |
-| `customer.dataservice.influxdb2.service.nodePort` | InfluxDB 端口 | `31521` |
-
-## 🔗 服务访问
-
-### Grafana
-- **地址**: `http://<node-ip>:30300`
-- **用户名**: `admin`
-- **密码**: `changeme` (可在 values.yaml 中修改)
-
-### Kibana
-- **地址**: `http://<node-ip>:30223`
-
-### Alertmanager
-- **地址**: `http://<node-ip>:30903`
-
-### DeepFlow App
-- **地址**: `http://<node-ip>:20418`
-
-### API Server
-- **地址**: `http://<node-ip>:31520`
-
-### InfluxDB
-- **地址**: `http://<node-ip>:31521`
-
-## 📊 默认仪表盘
-
-预置的 Grafana 仪表盘包括：
-
-- **Kubernetes 资源监控**
-  - 集群总览
-  - 节点资源使用
-  - Pod 性能监控
-  - 工作负载分析
-
-- **系统组件监控**
-  - API Server 状态
-  - etcd 性能
-  - 调度器监控
-  - CoreDNS 监控
-
-- **应用性能监控**
-  - 容器资源使用
-  - 网络流量分析
-  - 存储性能监控
-
-## 🔧 自定义配置
-
-### 外部数据库集成
-
-```yaml
-# 使用外部 ClickHouse
-tracing:
-  global:
-    externalClickHouse:
-      enabled: true
-      hosts: ["clickhouse.example.com"]
-      username: "admin"
-      password: "password"
-      clusterName: "cluster"
-
-# 使用外部 MySQL
-tracing:
-  global:
-    externalMySQL:
-      enabled: true
-      ip: "mysql.example.com"
-      port: 3306
-      username: "admin"
-      password: "password"
+```bash
+helm upgrade --install observability ./ -n xnet --create-namespace
 ```
 
-### 自定义告警规则
+方式二，单独准备自定义覆盖文件，例如 `custom-values.yaml`：
+
+```bash
+helm upgrade --install observability ./ -n xnet --create-namespace -f custom-values.yaml
+```
+
+## 配置方式
+
+当前建议只从父层参数入口控制，不直接改底层子组件默认文件。
+
+常见控制方式示例：
 
 ```yaml
 metric:
-  prometheus:
-    additionalPrometheusRules:
-      - name: custom-alerts
-        groups:
-          - name: custom.rules
-            rules:
-              - alert: HighCPUUsage
-                expr: sum(rate(container_cpu_usage_seconds_total[5m])) by (pod) > 0.9
-                for: 5m
-                labels:
-                  severity: critical
-                annotations:
-                  summary: "Pod CPU usage > 90%"
-```
+  grafana:
+    enabled: true
+    service:
+      nodePort: 30300
 
-### 存储配置
-
-```yaml
-# 配置持久化存储
 logging:
-  elasticsearch:
-    volumeClaimTemplate:
-      resources:
-        requests:
-          storage: 100Gi
-      storageClass: "fast-ssd"
+  kibana:
+    enabled: true
+    service:
+      type: NodePort
+      nodePort: 30223
 
 tracing:
   clickhouse:
-    storageConfig:
-      persistence:
-        - name: clickhouse-path
-          size: 200Gi
-          storageClass: "fast-ssd"
+    enabled: true
+  byconity:
+    enabled: false
+  mysql:
+    enabled: true
 ```
 
-## 🛠️ 故障排除
+如果你要控制某个追踪子组件参数，直接在父层按对应路径配置即可，例如：
 
-### 常见问题
+- `tracing.clickhouse.xxx`
+- `tracing.byconity.xxx`
+- `metric.grafana.xxx`
+- `metric.kube-state-metrics.xxx`
+- `logging.filebeat.xxx`
+- `logging.kibana.xxx`
 
-1. **Pod 启动失败**
-   ```bash
-   kubectl describe pod <pod-name> -n xnet
-   kubectl logs <pod-name> -n xnet
-   ```
+## 安装前检查
 
-2. **存储卷挂载失败**
-   - 检查 StorageClass 配置
-   - 确认 PVC 状态
+建议在正式安装前至少执行下面两个命令：
 
-3. **网络连接问题**
-   - 检查 Service 和 Endpoint 状态
-   - 验证网络策略配置
+```bash
+helm lint .
+helm template observability ./ -n xnet > rendered.yaml
+```
 
-### 性能优化
+如果要验证全组件开启场景：
 
-- 调整 Prometheus 数据保留时间
-- 配置合适的资源限制和请求
-- 使用 SSD 存储提升 I/O 性能
-- 根据集群规模调整副本数
+```bash
+helm lint . -f observability-all-enabled.yaml
+helm template observability ./ -n xnet -f observability-all-enabled.yaml > rendered-all.yaml
+```
 
-## 📝 版本信息
+## 安装后验证
 
-- **Chart 版本**: 1.0.0
-- **应用版本**: 1.0.0
-- **支持的 Kubernetes 版本**: 1.20+
-- **Prometheus Operator**: v0.83.0
-- **DeepFlow**: v7.0
+```bash
+kubectl get pods -n xnet
+kubectl get svc -n xnet
+kubectl get pvc -n xnet
+```
 
-## 🤝 贡献
+常见服务名示例：
 
-欢迎提交 Issue 和 Pull Request 来改进这个项目。
+- Grafana: `observability-grafana`
+- Kibana: `observability-kibana`
+- Alertmanager: `observability-alertmanager`
+- DeepFlow App: `observability-deepflow-app`
+- ClickHouse: `observability-clickhouse`
+- MySQL: `observability-mysql`
 
-## 📄 许可证
+例如访问 Grafana：
 
-本项目采用 MIT 许可证。
+```bash
+kubectl port-forward -n xnet svc/observability-grafana 3000:80
+```
+
+例如访问 Kibana：
+
+```bash
+kubectl port-forward -n xnet svc/observability-kibana 5601:5601
+```
+
+## 升级
+
+如果你修改了父层 `values.yaml`，直接执行：
+
+```bash
+helm upgrade observability ./ -n xnet
+```
+
+如果你使用单独的覆盖文件：
+
+```bash
+helm upgrade observability ./ -n xnet -f custom-values.yaml
+```
+
+如果当前 release 还不存在，统一用下面这条最稳妥：
+
+```bash
+helm upgrade --install observability ./ -n xnet --create-namespace -f custom-values.yaml
+```
+
+## 卸载
+
+### 1. 卸载 Helm Release
+
+```bash
+helm uninstall observability -n xnet
+```
+
+注意，卸载命令中的 release 名必须和安装时保持一致。当前 README 中统一使用 `observability`，不是 `obs`。
+
+### 2. 可选的资源清理
+
+如果你需要把命名空间内的运行资源一并清掉，可以继续执行：
+
+```bash
+kubectl delete namespace xnet
+```
+
+如果你只想清理数据卷而保留命名空间：
+
+```bash
+kubectl delete pvc --all -n xnet
+```
+
+### 3. 关于 CRD
+
+如果你启用了监控 CRD 相关能力，例如 `metric.crds.enabled=true`，那么集群级 CRD 是否需要删除要单独判断。
+
+只有在下面条件同时满足时，才建议手动删除：
+
+- 当前集群没有其他系统在复用这些 Prometheus Operator CRD
+- 你确认要彻底清掉整套监控能力
+
+否则不要直接删除集群级 CRD。
+
+## 服务访问
+
+默认值中常见访问端口包括：
+
+- Grafana: `30300`
+- Alertmanager: `30903`
+- Kibana: `30223`
+- DeepFlow App: `20418`
+- API Server: `31520`
+- InfluxDB: `31521`
+
+访问地址形式通常为：
+
+```text
+http://<node-ip>:<nodePort>
+```
+
+## 参考文件
+
+- 默认配置入口: [values.yaml](/root/test/observability/values.yaml)
+- 全组件覆盖文件: [observability-all-enabled.yaml](/root/test/observability/observability-all-enabled.yaml)
+- 历史渲染基线: [final.yaml](/root/test/observability/final.yaml)
+- 子组件默认配置归档: [files](/root/test/observability/files)
+- 子组件模板展开目录: [templates/childcharts](/root/test/observability/templates/childcharts)
+- 原始 Chart 参考: [chart-sources](/root/test/observability/chart-sources)

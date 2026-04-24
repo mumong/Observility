@@ -1,0 +1,40 @@
+{{- $values := include "childcharts.metric.grafana.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentValues := get $metricValues "grafana" | default dict -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "grafana" "Version" "9.2.7" "AppVersion" "12.0.2" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if and .Values.rbac.create (or (not .Values.rbac.namespaced) .Values.rbac.extraClusterRoleRules) (not .Values.rbac.useExistingClusterRole) }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ include "grafana.fullname" . }}-clusterrole
+{{- if or .Values.sidecar.dashboards.enabled .Values.rbac.extraClusterRoleRules .Values.sidecar.datasources.enabled .Values.sidecar.plugins.enabled .Values.sidecar.alerts.enabled }}
+rules:
+  {{- if or .Values.sidecar.dashboards.enabled .Values.sidecar.datasources.enabled .Values.sidecar.plugins.enabled .Values.sidecar.alerts.enabled }}
+  - apiGroups: [""] # "" indicates the core API group
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "watch", "list"]
+  {{- end}}
+  {{- with .Values.rbac.extraClusterRoleRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end}}
+{{- else }}
+rules: []
+{{- end}}
+{{- end}}
+
+{{- end -}}
+{{- end -}}

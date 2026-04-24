@@ -1,0 +1,28 @@
+{{- $values := include "childcharts.tracing.mysql.values" . | fromYaml -}}
+{{- $tracingValues := get .Values "tracing" | default dict -}}
+{{- $componentValues := get $tracingValues "mysql" | default dict -}}
+{{- $ctxChart := dict "Name" "mysql" "Version" "0.1.000" "AppVersion" "8.0.39" -}}
+{{- $ctx := dict "Values" $values "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $tracingValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{- if and (eq (tpl .Values.storageConfig.generateType .) "persistentVolumeClaim") (not .Values.storageConfig.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "childcharts.tracing.mysql.fullname" . }}-data-pvc
+  labels:
+    {{- include "childcharts.tracing.mysql.labels" . | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.storageConfig.persistence.annotations | nindent 4 }}
+spec:
+  {{- if (tpl .Values.storageConfig.persistence.storageClass .) }}
+  storageClassName: {{ tpl .Values.storageConfig.persistence.storageClass . | quote }}
+  {{- end }}
+  accessModes:
+  - {{ .Values.storageConfig.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.storageConfig.persistence.size | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

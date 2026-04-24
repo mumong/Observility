@@ -1,0 +1,50 @@
+{{- $values := include "childcharts.tracing.stella-agent-ce.values" . | fromYaml -}}
+{{- if and .Values.tracing.enabled $values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "childcharts.tracing.stella-agent-ce.fullname" . }}
+  labels:
+    {{- include "childcharts.tracing.stella-agent-ce.labels" . | nindent 4 }}
+{{- if $values.service.annotations }}
+  annotations:
+{{ toYaml $values.service.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if $values.service.clusterIP }}
+  clusterIP: {{ $values.service.clusterIP }}
+{{- end }}
+{{- if $values.service.externalIPs }}
+  externalIPs:
+{{ toYaml $values.service.externalIPs | indent 4 }}
+{{- end }}
+{{- if $values.service.loadBalancerIP }}
+  loadBalancerIP: {{ $values.service.loadBalancerIP }}
+{{- end }}
+{{- if $values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+  {{- range $cidr := $values.service.loadBalancerSourceRanges }}
+    - {{ $cidr }}
+  {{- end }}
+{{- end }}
+{{- if ne $values.service.type "ClusterIP" }}
+  externalTrafficPolicy: {{ $values.service.externalTrafficPolicy }}
+{{- end }}
+  ports:
+  {{- $serviceType := $values.service.type -}}
+  {{- range $values.service.ports }}
+  - name: {{ tpl .name $ }}
+    port: {{ tpl (toString .port) $ }}
+    targetPort: {{ tpl (toString .targetPort) $ }}
+    {{- if and (eq $serviceType "NodePort") (.nodePort) }}
+    nodePort: {{ tpl (toString .nodePort) $ }}
+    {{- end }}
+    protocol: {{ tpl .protocol $ }}
+  {{- end }}
+{{- if $values.service.additionalPorts }}
+{{ toYaml $values.service.additionalPorts | indent 2 }}
+{{- end }}
+  selector:
+    {{- include "childcharts.tracing.stella-agent-ce.selectorLabels" . | nindent 4 }}
+  type: "{{ $values.service.type }}"
+{{- end }}

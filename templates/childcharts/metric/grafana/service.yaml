@@ -1,0 +1,85 @@
+{{- $values := include "childcharts.metric.grafana.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentValues := get $metricValues "grafana" | default dict -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "grafana" "Version" "9.2.7" "AppVersion" "12.0.2" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if .Values.service.enabled }}
+{{- $root := . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "grafana.fullname" . }}
+  namespace: {{ include "grafana.namespace" . }}
+  labels:
+    {{- include "grafana.labels" . | nindent 4 }}
+    {{- with .Values.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- tpl (toYaml . | nindent 4) $ctxRoot }}
+  {{- end }}
+spec:
+  {{- if (or (eq .Values.service.type "ClusterIP") (empty .Values.service.type)) }}
+  type: ClusterIP
+  {{- with .Values.service.clusterIP }}
+  clusterIP: {{ . }}
+  {{- end }}
+  {{- else if eq .Values.service.type "LoadBalancer" }}
+  type: LoadBalancer
+  {{- with .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerClass }}
+  loadBalancerClass: {{ . }}
+  {{- end }}
+  {{- with .Values.service.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- else }}
+  type: {{ .Values.service.type }}
+  {{- end }}
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
+  {{- with .Values.service.externalIPs }}
+  externalIPs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.service.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
+  {{- with .Values.service.sessionAffinity }}
+  sessionAffinity: {{ . }}
+  {{- end }}
+  ports:
+    - name: {{ .Values.service.portName }}
+      port: {{ .Values.service.port }}
+      protocol: TCP
+      targetPort: {{ .Values.service.targetPort }}
+      {{- with .Values.service.appProtocol }}
+      appProtocol: {{ . }}
+      {{- end }}
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+      {{- with .Values.extraExposePorts }}
+      {{- tpl (toYaml . | nindent 4) $ctxRoot }}
+      {{- end }}
+  selector:
+    {{- include "grafana.selectorLabels" . | nindent 4 }}
+{{- end }}
+
+{{- end -}}
+{{- end -}}

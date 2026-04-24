@@ -1,0 +1,44 @@
+{{- $values := include "childcharts.tracing.byconity.values" . | fromYaml -}}
+{{- $ctxValues := mustMergeOverwrite (dict "global" ((index .Values.tracing "global") | default dict)) (deepCopy $values) -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and .Values.tracing.enabled ((index .Values.tracing "byconity" "enabled") | default false) -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fullname" . }}-resource-manager
+  labels:
+    {{- include "childcharts.tracing.byconity.labels" . | nindent 4 }}
+    byconity-role: resource-manager
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "childcharts.tracing.byconity.selectorLabels" . | nindent 4 }}
+    byconity-role: resource-manager
+  ports:
+    - name: port0
+      port: 9000
+      targetPort: tcp
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fullname" . }}-resource-manager-headless
+  labels:
+    {{- include "childcharts.tracing.byconity.labels" . | nindent 4 }}
+    byconity-role: resource-manager
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "childcharts.tracing.byconity.selectorLabels" . | nindent 4 }}
+    byconity-role: resource-manager
+  ports:
+    - name: port0
+      port: 9000
+      targetPort: tcp
+
+{{- end -}}
+{{- end -}}

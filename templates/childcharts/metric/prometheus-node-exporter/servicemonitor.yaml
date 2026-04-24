@@ -1,0 +1,80 @@
+{{- $values := include "childcharts.metric.prometheus-node-exporter.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentEnabled := or (not (hasKey $values "enabled")) (get $values "enabled") -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "prometheus-node-exporter" "Version" "4.47.0" "AppVersion" "1.9.1" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") $componentEnabled -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if .Values.prometheus.monitor.enabled }}
+apiVersion: {{ .Values.prometheus.monitor.apiVersion | default "monitoring.coreos.com/v1" }}
+kind: ServiceMonitor
+metadata:
+  name: {{ include "childcharts.metric.prometheus-node-exporter.fullname" . }}
+  namespace: {{ include "childcharts.metric.prometheus-node-exporter.monitor-namespace" . }}
+  labels:
+    {{- include "childcharts.metric.prometheus-node-exporter.labels" . | nindent 4 }}
+    {{- with .Values.prometheus.monitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  jobLabel: {{ default "app.kubernetes.io/name" .Values.prometheus.monitor.jobLabel }}
+  {{- include "childcharts.metric.prometheus-node-exporter.servicemonitor.scrapeLimits" .Values.prometheus.monitor | nindent 2 }}
+  {{- with .Values.prometheus.monitor.podTargetLabels }}
+  podTargetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.prometheus.monitor.targetLabels }}
+  targetLabels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+    {{- with .Values.prometheus.monitor.selectorOverride }}
+      {{- toYaml . | nindent 6 }}
+    {{- else }}
+      {{- include "childcharts.metric.prometheus-node-exporter.selectorLabels" . | nindent 6 }}
+    {{- end }}
+  {{- with .Values.prometheus.monitor.attachMetadata }}
+  attachMetadata:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  endpoints:
+    - port: {{ .Values.service.portName }}
+      scheme: {{ .Values.prometheus.monitor.scheme }}
+      {{- with .Values.prometheus.monitor.basicAuth }}
+      basicAuth:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.bearerTokenFile }}
+      bearerTokenFile: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.tlsConfig }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.proxyUrl }}
+      proxyUrl: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.interval }}
+      interval: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.scrapeTimeout }}
+      scrapeTimeout: {{ . }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.relabelings }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.prometheus.monitor.metricRelabelings }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+
+{{- end -}}
+{{- end -}}
