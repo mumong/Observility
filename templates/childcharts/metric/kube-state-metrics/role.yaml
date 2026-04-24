@@ -1,0 +1,251 @@
+{{- $values := include "childcharts.metric.kube-state-metrics.values" . | fromYaml -}}
+{{- $metricValues := get .Values "metric" | default dict -}}
+{{- $extraValues := get $metricValues "extra" | default dict -}}
+{{- $parentGlobal := get $extraValues "global" | default dict -}}
+{{- $componentEnabled := or (not (hasKey $values "enabled")) (get $values "enabled") -}}
+{{- $global := mustMergeOverwrite (deepCopy ((get $values "global") | default dict)) $parentGlobal -}}
+{{- $ctxValues := mustMergeOverwrite (deepCopy $values) (dict "global" $global) -}}
+{{- $ctxChart := dict "Name" "kube-state-metrics" "Version" "5.37.0" "AppVersion" "2.15.0" -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $metricValues "enabled") $componentEnabled -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if and (eq .Values.rbac.create true) (not .Values.rbac.useExistingRole) -}}
+{{- range (ternary (join "," .Values.namespaces | split "," ) (list "") (eq $ctxRoot.Values.rbac.useClusterRole false)) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if eq $ctxRoot.Values.rbac.useClusterRole false }}
+kind: Role
+{{- else }}
+kind: ClusterRole
+{{- end }}
+metadata:
+  labels:
+    {{- include "childcharts.metric.kube-state-metrics.labels" $ctxRoot | indent 4 }}
+  name: {{ template "childcharts.metric.kube-state-metrics.fullname" $ctxRoot }}
+{{- if eq $ctxRoot.Values.rbac.useClusterRole false }}
+  namespace: {{ . }}
+{{- end }}
+rules:
+{{ if has "certificatesigningrequests" $ctxRoot.Values.collectors }}
+- apiGroups: ["certificates.k8s.io"]
+  resources:
+  - certificatesigningrequests
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "configmaps" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - configmaps
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "cronjobs" $ctxRoot.Values.collectors }}
+- apiGroups: ["batch"]
+  resources:
+  - cronjobs
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "daemonsets" $ctxRoot.Values.collectors }}
+- apiGroups: ["apps"]
+  resources:
+  - daemonsets
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "deployments" $ctxRoot.Values.collectors }}
+- apiGroups: ["apps"]
+  resources:
+  - deployments
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "endpoints" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - endpoints
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "endpointslices" $ctxRoot.Values.collectors }}
+- apiGroups: ["discovery.k8s.io"]
+  resources:
+  - endpointslices
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "horizontalpodautoscalers" $ctxRoot.Values.collectors }}
+- apiGroups: ["autoscaling"]
+  resources:
+  - horizontalpodautoscalers
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "ingresses" $ctxRoot.Values.collectors }}
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - ingresses
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "jobs" $ctxRoot.Values.collectors }}
+- apiGroups: ["batch"]
+  resources:
+  - jobs
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "leases" $ctxRoot.Values.collectors }}
+- apiGroups: ["coordination.k8s.io"]
+  resources:
+  - leases
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "limitranges" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - limitranges
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "mutatingwebhookconfigurations" $ctxRoot.Values.collectors }}
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources:
+    - mutatingwebhookconfigurations
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "namespaces" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - namespaces
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "networkpolicies" $ctxRoot.Values.collectors }}
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - networkpolicies
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "ingressclasses" $ctxRoot.Values.collectors }}
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - ingressclasses
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "clusterrolebindings" $ctxRoot.Values.collectors }}
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+  - clusterrolebindings
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "clusterroles" $ctxRoot.Values.collectors }}
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+  - clusterroles
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "roles" $ctxRoot.Values.collectors }}
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources:
+  - roles
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "nodes" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - nodes
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "persistentvolumeclaims" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - persistentvolumeclaims
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "persistentvolumes" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - persistentvolumes
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "poddisruptionbudgets" $ctxRoot.Values.collectors }}
+- apiGroups: ["policy"]
+  resources:
+    - poddisruptionbudgets
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "pods" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "replicasets" $ctxRoot.Values.collectors }}
+- apiGroups: ["apps"]
+  resources:
+  - replicasets
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "replicationcontrollers" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - replicationcontrollers
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "resourcequotas" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - resourcequotas
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "secrets" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - secrets
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "services" $ctxRoot.Values.collectors }}
+- apiGroups: [""]
+  resources:
+  - services
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "statefulsets" $ctxRoot.Values.collectors }}
+- apiGroups: ["apps"]
+  resources:
+  - statefulsets
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "storageclasses" $ctxRoot.Values.collectors }}
+- apiGroups: ["storage.k8s.io"]
+  resources:
+    - storageclasses
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "validatingwebhookconfigurations" $ctxRoot.Values.collectors }}
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources:
+    - validatingwebhookconfigurations
+  verbs: ["list", "watch"]
+{{ end -}}
+{{ if has "volumeattachments" $ctxRoot.Values.collectors }}
+- apiGroups: ["storage.k8s.io"]
+  resources:
+    - volumeattachments
+  verbs: ["list", "watch"]
+{{ end -}}
+{{-  if $ctxRoot.Values.kubeRBACProxy.enabled  }}
+- apiGroups: ["authentication.k8s.io"]
+  resources:
+    - tokenreviews
+  verbs: ["create"]
+- apiGroups: ["authorization.k8s.io"]
+  resources:
+    - subjectaccessreviews
+  verbs: ["create"]
+{{- end }}
+{{- if $ctxRoot.Values.customResourceState.enabled }}
+- apiGroups: ["apiextensions.k8s.io"]
+  resources:
+    - customresourcedefinitions
+  verbs: ["list", "watch"]
+{{- end }}
+{{ if $ctxRoot.Values.rbac.extraRules }}
+{{ toYaml $ctxRoot.Values.rbac.extraRules }}
+{{ end }}
+{{- end -}}
+{{- end -}}
+
+{{- end -}}
+{{- end -}}

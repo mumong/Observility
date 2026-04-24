@@ -1,0 +1,63 @@
+{{- $values := include "childcharts.tracing.byconity.values" . | fromYaml -}}
+{{- $ctxValues := mustMergeOverwrite (dict "global" ((index .Values.tracing "global") | default dict)) (deepCopy $values) -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and .Values.tracing.enabled ((index .Values.tracing "byconity" "enabled") | default false) -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+{{- if and .Values.fdb.enableCliPod .Values.fdb.enabled }}
+{{- $fdbShell := get .Values "fdbShell" | default dict }}
+{{- $fdbShellImage := get $fdbShell "image" | default dict }}
+{{- $fdbShellImageRepository := tpl (get $fdbShellImage "repository" | default .Values.image.repository) . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fullname" . }}-fdbcli
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: fdbcli
+      app.kubernetes.io/instance: {{ include "childcharts.tracing.byconity.fullname" . }}
+      app.kubernetes.io/component: cli
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: fdbcli
+        app.kubernetes.io/instance: {{ include "childcharts.tracing.byconity.fullname" . }}
+        app.kubernetes.io/component: cli
+    spec:
+      imagePullSecrets:
+      {{- with .Values.global.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: fdbcli
+        image: "{{ $fdbShellImageRepository }}:{{ .Values.fdb.version }}-1"
+        env:
+        - name: FDB_CLUSTER_FILE
+          value: /mnt/config-volume/cluster-file
+        volumeMounts:
+        - name: config-volume
+          mountPath: /mnt/config-volume
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: "1"
+            memory: 1Gi
+      {{- with .Values.byconity.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ include "childcharts.tracing.byconity.fullname" . }}-fdb-config
+{{- end }}
+
+{{- end -}}
+{{- end -}}

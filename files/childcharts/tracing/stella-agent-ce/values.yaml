@@ -1,0 +1,104 @@
+global:
+  podAntiAffinityLabelSelector: []
+  podAntiAffinityTermLabelSelector: []
+  podAffinityLabelSelector: []
+  podAffinityTermLabelSelector: []
+  nodeAffinityLabelSelector: []
+  nodeAffinityTermLabelSelector: []
+  timezone: "Asia/Shanghai"
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  password:
+    mysql: deepflow
+  externalMySQL:
+    enabled: false
+    ip: 10.1.2.3
+    port: 3306
+
+replicas: 1
+
+hostNetwork: "false"
+dnsPolicy: ClusterFirst
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+podAnnotations: {}
+
+image:
+  repository: xnet.registry.io:8443/observability/deepflowio-stella-agent-ce
+  pullPolicy: IfNotPresent
+  tag: latest
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  annotations: {}
+  labels: {}
+  clusterIP: ""
+  ports:
+  - name: tcp
+    port: 20831
+    targetPort: 20831
+    nodePort:
+    protocol: TCP
+  additionalPorts: []
+  externalIPs: []
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: Cluster
+  type: ClusterIP
+
+readinessProbe:
+  httpGet:
+    path: /v1/health/
+    port: http
+  failureThreshold: 10
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  successThreshold: 1
+livenessProbe:
+  failureThreshold: 6
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  successThreshold: 1
+  httpGet:
+    path: /v1/health/
+    port: http
+  timeoutSeconds: 1
+
+configmap:
+  df-llm-agent.yaml:
+    daemon: true
+    api_timeout: 500
+    sql_show: false
+    log_file: "/var/log/df-llm-agent.log"
+    log_level: "info"
+    instance_path: "/root/df-llm-agent"
+    mysql:
+      host: '{{ if $.Values.tracing.global.externalMySQL.enabled }}{{ $.Values.tracing.global.externalMySQL.ip }}{{ else }}{{ $.Release.Name }}-mysql{{ end }}'
+      port: '{{ if $.Values.tracing.global.externalMySQL.enabled }}{{ $.Values.tracing.global.externalMySQL.port }}{{ else }}30130{{ end }}'
+      user_password: '{{ if $.Values.tracing.global.externalMySQL.enabled }}{{ $.Values.tracing.global.externalMySQL.password }}{{ else }}{{ $.Values.tracing.global.password.mysql }}{{ end }}'
+      database: "deepflow_llm"
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+
+podAntiAffinityLabelSelector: []
+podAntiAffinityTermLabelSelector: []
+podAffinityLabelSelector: []
+podAffinityTermLabelSelector: []
+nodeAffinityLabelSelector: []
+nodeAffinityTermLabelSelector: []

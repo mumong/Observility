@@ -1,0 +1,84 @@
+{{- $root := . -}}
+{{- $values := include "childcharts.tracing.deepflow-agent.values" . | fromYaml -}}
+{{- $ctxValues := mustMergeOverwrite (dict "global" .Values.tracing.global) (deepCopy $values) -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and .Values.tracing.enabled $values.enabled (has "watcher" $values.deployComponent) }}
+{{- with $ctx }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "childcharts.tracing.deepflow-agent.fullname" $root }}-watcher
+  labels:
+    {{- include "childcharts.tracing.deepflow-agent.labels" $root | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "childcharts.tracing.deepflow-agent.selectorLabels" $root | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ toYaml .Values.deepflowAgentConfig | sha256sum }}
+        checksum/customConfig: {{ toYaml .Values.deepflowAgentConfig | sha256sum }}
+        container.apparmor.security.beta.kubernetes.io/deepflow-agent: unconfined
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "childcharts.tracing.deepflow-agent.selectorLabels" $root | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+      {{- with .Values.global.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "childcharts.tracing.deepflow-agent.fullname" $root }}
+      containers:
+        - name: deepflow-agent
+          image: "{{ tpl .Values.image.repository $root }}:{{ tpl (toString .Values.image.tag) $root }}"
+          imagePullPolicy: {{ tpl .Values.image.pullPolicy $root }}
+          ports:
+            - name: receive
+              containerPort: {{ tpl (toString .Values.externalAgentHttpProxyPort) $root }}
+              protocol: TCP
+          env:
+          - name: K8S_WATCH_POLICY
+            value: "watch-only"
+          {{- range .Values.env }}
+          - name: {{ .name }}
+            value: {{ .value }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: deepflow-agent-conf
+              mountPath: /etc/deepflow-agent
+      volumes:
+        - name: deepflow-agent-conf
+          configMap:
+            name: {{ include "childcharts.tracing.deepflow-agent.fullname" $root }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+{{ include "childcharts.tracing.deepflow-agent.nodeaffinity" . | nindent 8 }}
+{{ include "childcharts.tracing.deepflow-agent.podAffinity" . | nindent 8 }}
+{{ include "childcharts.tracing.deepflow-agent.podAntiAffinity" . | nindent 8 }}
+      {{- if or .Values.global.tolerations .Values.tolerations }}
+      tolerations:
+      {{- if .Values.global.tolerations }}
+      {{- toYaml .Values.global.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}

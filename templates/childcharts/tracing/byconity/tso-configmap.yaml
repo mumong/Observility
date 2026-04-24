@@ -1,0 +1,46 @@
+{{- $values := include "childcharts.tracing.byconity.values" . | fromYaml -}}
+{{- $ctxValues := mustMergeOverwrite (dict "global" ((index .Values.tracing "global") | default dict)) (deepCopy $values) -}}
+{{- $ctx := dict "Values" $ctxValues "Release" .Release "Chart" .Chart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and .Values.tracing.enabled ((index .Values.tracing "byconity" "enabled") | default false) -}}
+{{- with $ctx -}}
+{{- $ctxRoot := . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fullname" . }}-tso-run
+  labels:
+    {{- include "childcharts.tracing.byconity.labels" . | nindent 4 }}
+    byconity-role: tso
+data:
+  run: |
+    #!/bin/bash
+    exec "${APP_ROOT}/bin/tso-server" --config "/etc/byconity/tso.yaml"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "childcharts.tracing.byconity.fullname" . }}-tso-config
+  labels:
+    {{- include "childcharts.tracing.byconity.labels" . | nindent 4 }}
+    byconity-role: tso
+data:
+  tso.yaml: |
+    {{- $tso_service := dict "service" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "tso") "headless_service" (printf "%s-%s-headless" (include "childcharts.tracing.byconity.fullname" .) "tso") "psm" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "tso") }}
+    {{- $service_discovery := dict "service_discovery" (dict "tso" $tso_service) }}
+    {{- .Files.Get "files/childcharts/tracing/byconity/tso.yaml" | fromYaml | merge .Values.byconity.tso.configOverwrite $service_discovery | toYaml | nindent 4 }}
+  cnch-config.yaml: |
+    {{- $ports := dict "tcp_port" .Values.byconity.ports.tcp "http_port" .Values.byconity.ports.http "rpc_port" .Values.byconity.ports.rpc "exchange_port" .Values.byconity.ports.exchange "exchange_status_port" .Values.byconity.ports.exchangeStatus }}
+    {{- $server_service := dict "service" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "server") "headless_service" (printf "%s-%s-headless" (include "childcharts.tracing.byconity.fullname" .) "server") "psm" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "server") }}
+    {{- $tso_service := dict "service" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "tso") "headless_service" (printf "%s-%s-headless" (include "childcharts.tracing.byconity.fullname" .) "tso") "psm" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "tso") }}
+    {{- $dm_service := dict "service" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "daemon-manager") "headless_service" (printf "%s-%s-headless" (include "childcharts.tracing.byconity.fullname" .) "daemon-manager") "psm" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "daemon-manager") }}
+    {{- $rm_service := dict "service" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "resource-manager") "headless_service" (printf "%s-%s-headless" (include "childcharts.tracing.byconity.fullname" .) "resource-manager") "psm" (printf "%s-%s" (include "childcharts.tracing.byconity.fullname" .) "resource-manager") }}
+    {{- $service_discovery := dict "service_discovery" (dict "server" $server_service "tso" $tso_service "daemon_manager" $dm_service "resource_manager" $rm_service) }}
+    {{- $catalog := dict "catalog" (dict "name_space" (include "childcharts.tracing.byconity.fullname" .)) }}
+    {{- $hdfs_addr_dict := dict "hdfs_addr" .Values.byconity.hdfs_address }}
+    {{- $hdfs_ha_nameservice_dict := dict "hdfs_ha_nameservice" .Values.byconity.hdfs_ha_nameservice }}
+    {{- $hdfs_addr := (empty .Values.byconity.hdfs_ha_nameservice | ternary $hdfs_addr_dict $hdfs_ha_nameservice_dict) }}
+    {{- .Files.Get "files/childcharts/tracing/byconity/cnch-config.yaml" | fromYaml | merge  $hdfs_addr $catalog $service_discovery $ports | toYaml | nindent 4 }}
+
+{{- end -}}
+{{- end -}}

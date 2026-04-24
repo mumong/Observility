@@ -1,0 +1,33 @@
+metric:
+  grafana:
+    # Keep optional Grafana add-ons off in the full-component profile so the
+    # single Helm release stays within the Kubernetes Secret size limit.
+    ingress:
+      enabled: false
+    imageRenderer:
+      enabled: false
+  kube-state-metrics:
+    kubeRBACProxy:
+      enabled: false
+  prometheus-node-exporter:
+    kubeRBACProxy:
+      enabled: false
+
+tracing:
+  byconity:
+    enabled: true
+    hdfs:
+      enabled: true
+      shell:
+        enabled: false
+    ingress:
+      enabled: true
+  stella-agent-ce:
+    enabled: true
+
+customer:
+  dataservice:
+    influxdb2:
+      enabled: true
+  nvidiaGpuExporter:
+    enabled: true

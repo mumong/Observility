@@ -451,8 +451,7 @@ metric:
       targetPort: 9090
       reloaderWebPort: 8080
       externalIPs: []
-      nodeport: 31400
-      # nodePort: 30090
+      nodePort: 31400
       loadBalancerIP: ""
       loadBalancerSourceRanges: []
       externalTrafficPolicy: Cluster
@@ -2219,7 +2218,7 @@ tracing:
   # enabled: false
   global:
     image:
-      repository: xnet.registry.io:8443/observability/deepflow-ce
+      repository: xnet.registry.io:8443/observability
       pullPolicy: IfNotPresent
       imagePullSecrets: []
     hostNetwork: false
@@ -2265,11 +2264,11 @@ tracing:
       password:  ## External Mysql password
   image:
     server:
-      repository: "{{ .Values.tracing.global.image.repository }}/deepflow-server"
+      repository: "xnet.registry.io:8443/observability/deepflow-ce/deepflow-server"
       tag: v7.0
       pullPolicy: "{{ .Values.tracing.global.image.pullPolicy }}"
     app:
-      repository:  "{{ .Values.tracing.global.image.repository }}/deepflow-app"
+      repository:  "xnet.registry.io:8443/observability/deepflow-ce/deepflow-app"
       tag: v7.0
       pullPolicy: "{{ .Values.tracing.global.image.pullPolicy }}"
   imagePullSecrets: []
@@ -2836,7 +2835,7 @@ tracing:
   stella-agent-ce:
     enabled: false
   byconity:
-    enabled: false
+    enabled: true
 
 customer:
   enabled: true
@@ -2995,5 +2994,3 @@ customer:
       scrapeTimeout: 10s
       relabelings: []
       metricRelabelings: []
-
-

@@ -1,0 +1,140 @@
+{{- $values := include "childcharts.tracing.mysql.values" . | fromYaml -}}
+{{- $tracingValues := get .Values "tracing" | default dict -}}
+{{- $componentValues := get $tracingValues "mysql" | default dict -}}
+{{- $ctxChart := dict "Name" "mysql" "Version" "0.1.000" "AppVersion" "8.0.39" -}}
+{{- $ctx := dict "Values" $values "Release" .Release "Chart" $ctxChart "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
+{{- if and (get $tracingValues "enabled") (get $componentValues "enabled") -}}
+{{- with $ctx -}}
+{{- if not .Values.externalMySQL.enabled }}
+{{- if and (not .Values.global.allInOneLocalStorage) (eq (tpl .Values.storageConfig.generateType .) "hostPath") (not .Values.nodeAffinityLabelSelector) }}
+{{- fail "tracing.mysql.nodeAffinityLabelSelector must be set when mysql uses hostPath without allInOneLocalStorage" -}}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "childcharts.tracing.mysql.fullname" . }}
+  labels:
+    {{- include "childcharts.tracing.mysql.labels" . | nindent 4 }}
+spec:
+  replicas: {{ tpl (toString .Values.replicas) . }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "childcharts.tracing.mysql.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "childcharts.tracing.mysql.configmap" . | sha256sum }}
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "childcharts.tracing.mysql.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      hostNetwork: {{ tpl (toString .Values.hostNetwork) . }}
+      dnsPolicy: {{ tpl .Values.dnsPolicy . }}
+      imagePullSecrets:
+      {{- with .Values.global.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if and (eq (tpl .Values.storageConfig.generateType .) "hostPath") (.Values.storageConfig.hostPathChownContainerEnabled) }}
+      {{- if .Values.chmodContainer.enabled }}
+      initContainers:
+      - name: hostpath-chown
+        image: "{{ tpl .Values.image.repository . }}:{{ tpl (toString .Values.image.tag) . }}"
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+        command:
+        - chown
+        - 27:27
+        - /var/lib/mysql
+        volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: data-path
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: mysql
+          securityContext:
+            {{- toYaml (.Values.securityContext | default dict) | nindent 12 }}
+          image: "{{ tpl .Values.image.repository . }}:{{ tpl (toString .Values.image.tag) . }}"
+          imagePullPolicy: {{ tpl .Values.image.pullPolicy . }}
+          ports:
+            - name: tcp
+              containerPort: 30130
+              protocol: TCP
+          livenessProbe:
+            {{ toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{ toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ tpl .Values.password . }}
+            - name: MYSQL_DATABASE
+              value: grafana
+            - name: TZ
+              value: "{{ tpl .Values.timezone . }}"
+          volumeMounts:
+          - name: mysql-config
+            mountPath: /etc/my.cnf
+            subPath: my.cnf
+          - name: mysql-config-init-sql
+            mountPath: /docker-entrypoint-initdb.d/init.sql
+            subPath: init.sql
+          - mountPath: /var/lib/mysql
+            name: data-path
+      volumes:
+        - name: mysql-config
+          configMap:
+            name: {{ include "childcharts.tracing.mysql.fullname" . }}
+            items:
+            - key: my.cnf
+              path: my.cnf
+        - name: mysql-config-init-sql
+          configMap:
+            name: {{ include "childcharts.tracing.mysql.fullname" . }}
+            items:
+            - key: init.sql
+              path: init.sql
+        - name: data-path
+          {{- if eq (tpl .Values.storageConfig.generateType .) "persistentVolumeClaim" }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.storageConfig.persistence.existingClaim | default (printf "%s-data-pvc" (include "childcharts.tracing.mysql.fullname" .)) }}
+          {{- end }}
+          {{- if eq (tpl .Values.storageConfig.generateType .) "hostPath" }}
+          hostPath:
+            type: DirectoryOrCreate
+            path: {{ tpl .Values.storageConfig.hostPath . }}
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- include "childcharts.tracing.mysql.nodeaffinity" . | indent 6 }}
+      {{- include "childcharts.tracing.mysql.podAffinity" . | indent 6 }}
+      {{- include "childcharts.tracing.mysql.podAntiAffinity" . | indent 6 }}
+      {{- if or .Values.global.tolerations .Values.tolerations }}
+      tolerations:
+      {{- with .Values.global.tolerations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

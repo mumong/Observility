@@ -25,8 +25,9 @@ items:
       clusterIP: {{ $serviceValues.clusterIP }}
       {{- end }}
       {{- if $serviceValues.ipDualStack.enabled }}
-        ipFamilies: {{ toYaml $serviceValues.ipDualStack.ipFamilies | nindent 4 }}
-        ipFamilyPolicy: {{ $serviceValues.ipDualStack.ipFamilyPolicy }}
+      ipFamilies:
+{{ toYaml $serviceValues.ipDualStack.ipFamilies | indent 8 }}
+      ipFamilyPolicy: {{ $serviceValues.ipDualStack.ipFamilyPolicy }}
       {{- end }}
       {{- if $serviceValues.loadBalancerSourceRanges }}
       loadBalancerSourceRanges:
