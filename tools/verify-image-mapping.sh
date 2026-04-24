@@ -49,11 +49,11 @@ main() {
 
   require_match 'xnet\.registry\.io:8443/observability/foundationdb-kubernetes-sidecar:7\.1\.15-1' "${TMP_DIR}/byconity.rendered.yaml"
   require_match 'xnet\.registry\.io:8443/observability/fdb-kubernetes-operator:v1\.9\.0' "${TMP_DIR}/byconity.rendered.yaml"
-  require_match 'image: "xnet\.registry\.io:8443/observability/byconity/foundationdb:7\.1\.15"' "${TMP_DIR}/byconity.rendered.yaml"
+  require_match 'image: "xnet\.registry\.io:8443/observability/foundationdb-kubernetes-sidecar:7\.1\.15-1"' "${TMP_DIR}/byconity.rendered.yaml"
   require_match 'baseImage: xnet\.registry\.io:8443/observability/foundationdb-kubernetes-sidecar' "${TMP_DIR}/byconity.rendered.yaml"
-  require_match 'mainContainer:\s+imageConfigs:\s+- baseImage: '\''xnet\.registry\.io:8443/observability/byconity/foundationdb'\''\s+version: '\''7\.1\.15'\''' "${TMP_DIR}/byconity.rendered.yaml"
+  require_match 'mainContainer:\s+imageConfigs:\s+- baseImage: xnet\.registry\.io:8443/observability/foundationdb-kubernetes-sidecar\s+tagSuffix: "-1"\s+version: '\''7\.1\.15'\''' "${TMP_DIR}/byconity.rendered.yaml"
   require_absent 'foundationdb/foundationdb:7\.1\.15' "${TMP_DIR}/byconity.rendered.yaml"
-  require_absent 'baseImage: xnet\.registry\.io:8443/observability/foundationdb/foundationdb' "${TMP_DIR}/byconity.rendered.yaml"
+  require_absent 'xnet\.registry\.io:8443/observability/byconity/foundationdb:7\.1\.15' "${TMP_DIR}/byconity.rendered.yaml"
 
   echo "PASS: verify image mapping"
 }

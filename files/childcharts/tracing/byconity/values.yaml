@@ -389,7 +389,8 @@ fdb:
     mainContainer:
       imageConfigs:
         - version: "{{ .Values.fdb.version }}"
-          baseImage: "{{ .Values.fdbShell.image.repository }}/foundationdb"
+          baseImage: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
+          tagSuffix: "-1"
     sidecarContainer:
       imageConfigs:
         - version: "{{ .Values.fdb.version }}"
@@ -412,7 +413,7 @@ fdb-operator:
 
 fdbShell:
   image:
-    repository: xnet.registry.io:8443/observability/byconity
+    repository: xnet.registry.io:8443/observability/foundationdb-kubernetes-sidecar
 
 hdfs:
   enabled: false
