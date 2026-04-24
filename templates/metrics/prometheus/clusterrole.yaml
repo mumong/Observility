@@ -1,10 +1,4 @@
 {{- if and .Values.metric.enabled .Values.metric.prometheus.enabled .Values.metric.extra.global.rbac.create }}
-{{- $ksmValues := include "childcharts.metric.kube-state-metrics.values" . | fromYaml -}}
-{{- $ksmGlobal := mustMergeOverwrite (deepCopy ((get $ksmValues "global") | default dict)) ((get (get .Values.metric "extra" | default dict) "global") | default dict) -}}
-{{- $ksmCtx := dict "Values" (mustMergeOverwrite (deepCopy $ksmValues) (dict "global" $ksmGlobal)) "Release" .Release "Chart" (dict "Name" "kube-state-metrics" "Version" "5.37.0" "AppVersion" "2.15.0") "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
-{{- $nodeExporterValues := include "childcharts.metric.prometheus-node-exporter.values" . | fromYaml -}}
-{{- $nodeExporterGlobal := mustMergeOverwrite (deepCopy ((get $nodeExporterValues "global") | default dict)) ((get (get .Values.metric "extra" | default dict) "global") | default dict) -}}
-{{- $nodeExporterCtx := dict "Values" (mustMergeOverwrite (deepCopy $nodeExporterValues) (dict "global" $nodeExporterGlobal)) "Release" .Release "Chart" (dict "Name" "prometheus-node-exporter" "Version" "4.47.0" "AppVersion" "1.9.1") "Capabilities" .Capabilities "Files" .Files "Template" .Template -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -35,16 +29,16 @@ rules:
 - nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
   verbs: ["get"]
 {{/* fix(#3338): add required rules to use node-exporter with the RBAC proxy */}}
-{{- if and (hasKey .Values.metric "nodeExporter") .Values.metric.nodeExporter.enabled (hasKey .Values.metric "prometheus-node-exporter") (hasKey (index .Values.metric "prometheus-node-exporter") "kubeRBACProxy") (index .Values.metric "prometheus-node-exporter").kubeRBACProxy.enabled }}
+{{- if and (hasKey .Values.metric "nodeExporter") .Values.metric.nodeExporter.enabled (hasKey .Values.metric "prometheus-node-exporter") (hasKey (index .Values.metric "prometheus-node-exporter") "kubeRBACProxy") (index .Values.metric "prometheus-node-exporter").kubeRBACProxy.enabled (hasKey .Subcharts "prometheus-node-exporter") }}
 - apiGroups: [ "" ]
   resources:
-  - services/{{ include "childcharts.metric.prometheus-node-exporter.fullname" $nodeExporterCtx }}
+  - services/{{ include "prometheus-node-exporter.fullname" (index .Subcharts "prometheus-node-exporter") }}
   verbs: [ "get", "list", "watch" ]
 {{- end }}
-{{- if and (hasKey .Values.metric "kubeStateMetrics") .Values.metric.kubeStateMetrics.enabled (hasKey .Values.metric "kube-state-metrics") (hasKey (index .Values.metric "kube-state-metrics") "kubeRBACProxy") (index .Values.metric "kube-state-metrics").kubeRBACProxy.enabled }}
+{{- if and (hasKey .Values.metric "kubeStateMetrics") .Values.metric.kubeStateMetrics.enabled (hasKey .Values.metric "kube-state-metrics") (hasKey (index .Values.metric "kube-state-metrics") "kubeRBACProxy") (index .Values.metric "kube-state-metrics").kubeRBACProxy.enabled (hasKey .Subcharts "kube-state-metrics") }}
 - apiGroups: [ "" ]
   resources:
-  - services/{{ include "childcharts.metric.kube-state-metrics.fullname" $ksmCtx }}
+  - services/{{ include "kube-state-metrics.fullname" (index .Subcharts "kube-state-metrics") }}
   verbs: [ "get", "list", "watch" ]
 {{- end }}
 {{- if .Values.metric.prometheus.additionalRulesForClusterRole }}
