@@ -53,6 +53,10 @@ main() {
 
   cd "${ROOT_DIR}"
 
+  local current_rendered="${TMP_DIR}/current-rendered.yaml"
+  local verify_rendered="${TMP_DIR}/verify-rendered.yaml"
+  local compare_rendered="${TMP_DIR}/compare-rendered.yaml"
+
   cat > "${TMP_DIR}/all-enabled.yaml" <<'EOF'
 tracing:
   enabled: true
@@ -89,11 +93,11 @@ EOF
   helm lint . -f "${TMP_DIR}/all-enabled.yaml" >/dev/null
   log_pass "helm lint (all-enabled)"
 
-  helm template observability ./ -n xnet > current-rendered.yaml
-  log_pass "render default -> current-rendered.yaml"
+  helm template observability ./ -n xnet > "${current_rendered}"
+  log_pass "render default -> ${current_rendered}"
 
-  helm template observability ./ -n xnet -f "${TMP_DIR}/all-enabled.yaml" > verify-rendered.yaml
-  log_pass "render all-enabled -> verify-rendered.yaml"
+  helm template observability ./ -n xnet -f "${TMP_DIR}/all-enabled.yaml" > "${verify_rendered}"
+  log_pass "render all-enabled -> ${verify_rendered}"
 
   cat > "${TMP_DIR}/final-parity-check.yaml" <<'EOF'
 tracing:
@@ -103,10 +107,10 @@ metric:
   crds:
     enabled: false
 EOF
-  helm template observability ./ -n xnet -f "${TMP_DIR}/final-parity-check.yaml" > compare-rendered.yaml
+  helm template observability ./ -n xnet -f "${TMP_DIR}/final-parity-check.yaml" > "${compare_rendered}"
   if [[ -f final.yaml ]]; then
     render_inventory final.yaml "${TMP_DIR}/final.inventory.tsv"
-    render_inventory compare-rendered.yaml "${TMP_DIR}/compare.inventory.tsv"
+    render_inventory "${compare_rendered}" "${TMP_DIR}/compare.inventory.tsv"
     comm -23 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-final.tsv"
     comm -13 "${TMP_DIR}/final.inventory.tsv" "${TMP_DIR}/compare.inventory.tsv" > "${TMP_DIR}/only-in-compare.tsv"
     [[ ! -s "${TMP_DIR}/only-in-final.tsv" ]]

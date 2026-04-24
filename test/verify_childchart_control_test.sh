@@ -19,8 +19,4 @@ echo "${OUTPUT}" | rg -q 'PASS: tracing parent controls'
 echo "${OUTPUT}" | rg -q 'PASS: metric parent controls'
 echo "${OUTPUT}" | rg -q 'PASS: logging parent controls'
 
-[[ -s "${ROOT_DIR}/current-rendered.yaml" ]]
-[[ -s "${ROOT_DIR}/verify-rendered.yaml" ]]
-[[ -s "${ROOT_DIR}/compare-rendered.yaml" ]]
-
 echo "PASS: verify_childchart_control_test"

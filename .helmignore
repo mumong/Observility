@@ -17,3 +17,7 @@ README_chart.md
 *.tar.gz
 now.yaml
 check.yaml
+compare-rendered.yaml
+current-rendered.yaml
+verify-rendered.yaml
+*.rendered.yaml
