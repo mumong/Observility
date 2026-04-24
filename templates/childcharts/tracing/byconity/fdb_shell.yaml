@@ -35,7 +35,7 @@ spec:
       {{- end }}
       containers:
       - name: fdbcli
-        image: "{{ $fdbShellImageRepository }}/foundationdb:{{ .Values.fdb.version }}"
+        image: "{{ $fdbShellImageRepository }}:{{ .Values.fdb.version }}-1"
         env:
         - name: FDB_CLUSTER_FILE
           value: /mnt/config-volume/cluster-file
