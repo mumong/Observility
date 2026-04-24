@@ -451,7 +451,8 @@ metric:
       targetPort: 9090
       reloaderWebPort: 8080
       externalIPs: []
-      nodePort: 30090
+      nodeport: 31400
+      # nodePort: 30090
       loadBalancerIP: ""
       loadBalancerSourceRanges: []
       externalTrafficPolicy: Cluster
