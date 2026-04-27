@@ -79,7 +79,7 @@ helm template observability ./ -n xnet > rendered.yaml
 普通安装直接使用仓库根目录默认配置：
 
 ```bash
-helm upgrade --install observability ./ -n xnet --create-namespace
+helm install observability ./ -n xnet --create-namespace
 ```
 
 ### 2. 边缘测安装
