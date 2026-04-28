@@ -729,7 +729,7 @@ extraSecretMounts: []
 
 ## Additional grafana server volume mounts
 # Defines additional volume mounts.
-extraVolumeMounts: []
+#extraVolumeMounts: []
   # - name: extra-volume-0
   #   mountPath: /mnt/volume0
   #   readOnly: true
@@ -738,9 +738,42 @@ extraVolumeMounts: []
   #   readOnly: true
   # - name: grafana-secrets
   #   mountPath: /mnt/volume2
+extraVolumeMounts:
+  # - name: extra-volume-0
+  #   mountPath: /mnt/volume0
+  #   readOnly: true
+   - name: v1
+     mountPath: /usr/share/grafana/public/img/bg
+   - name: v2
+     mountPath: /var/lib/grafana/plugins/yesoreyeram-boomtheme-panel
+   - name: fav
+     mountPath: /usr/share/grafana/public/img/fav32.png
+   - name: icon
+     mountPath: /usr/share/grafana/public/img/grafana_icon.svg
+  #   readOnly: true
+  # - name: grafana-secrets
+  #   mountPath: /mnt/volume2
 
 ## Additional Grafana server volumes
-extraVolumes: []
+extraVolumes:
+  # - name: extra-volume-0
+  #   existingClaim: volume-claim
+   - name: v1
+     hostPath:
+       path: /usr/local/registry/resource/bg
+   - name: v2
+     hostPath:
+       path: /usr/local/registry/resource/plugins/yesoreyeram-boomtheme-panel
+   - name: fav
+     hostPath:
+       path: /usr/local/registry/resource/icon/fav32.png
+   - name: icon
+     hostPath:
+       path: /usr/local/registry/resource/icon/grafana_icon.svg
+
+
+## Additional Grafana server volumes
+#extraVolumes: []
   # - name: extra-volume-0
   #   existingClaim: volume-claim
   # - name: extra-volume-1
